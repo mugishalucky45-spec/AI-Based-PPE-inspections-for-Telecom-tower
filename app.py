@@ -235,8 +235,8 @@ with st.sidebar:
     else:
         page = st.radio("Worker menu", ["Worker inspection", "Worker status", "Notifications"])
 
-st.markdown('<div class="hero"><h1>TowerSafe PPE Inspection</h1><p>Front and back evidence, inspector review, and shared online decisions.</p></div>', unsafe_allow_html=True)
-st.caption("Safety prototype: YOLO detections assist the inspector and must not replace a qualified safety review.")
+st.markdown('<div class="hero"><h1>TowerSafe PPE Inspection</h1><p>Front and back photo then inspector review.</p></div>', unsafe_allow_html=True)
+st.caption("PLEASE INSERT BELOW INFORMATION.")
 
 try:
     items = fetch_inspections(client, user_id, is_inspector)
