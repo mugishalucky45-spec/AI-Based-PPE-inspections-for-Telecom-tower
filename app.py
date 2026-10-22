@@ -11,12 +11,15 @@ import streamlit as st
 from supabase import create_client, Client
 from ultralytics import YOLO
 
-
 APP_DIR = Path(__file__).resolve().parent
+
 MODEL_PATH = Path(os.environ.get(
     "PPE_MODEL_PATH",
     str(APP_DIR / "best.pt")
 ))
+
+st.sidebar.write("Model path:", str(MODEL_PATH))
+st.sidebar.write("Model file exists:", MODEL_PATH.is_file())
 
 BUCKET = "inspection-photos"
 PPE_CLASSES = ["helmet", "gloves", "safety_vest", "safety_shoes", "harness"]
