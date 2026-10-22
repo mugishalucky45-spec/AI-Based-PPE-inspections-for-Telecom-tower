@@ -35,18 +35,17 @@ STATUS_LABELS = {
 
 st.set_page_config(page_title="TowerSafe | PPE Inspection", page_icon="🦺", layout="wide")
 
+
 @st.cache_resource
 def load_model(model_path: str):
     return YOLO(model_path)
 
 
-
 def analyze_image(image_bytes: bytes, confidence: float = 0.25):
     if not MODEL_PATH.exists():
         return None, (
-            f"DEBUG: Model path checked: {MODEL_PATH} | "
-            f"App folder: {APP_DIR} | "
-            f"Files here: {[p.name for p in APP_DIR.iterdir()]}"
+            f"YOLO model file not found: {MODEL_PATH}. "
+            f"App folder files: {[p.name for p in APP_DIR.iterdir()]}"
         )
 
     try:
@@ -57,7 +56,10 @@ def analyze_image(image_bytes: bytes, confidence: float = 0.25):
             return None, "Could not read the camera image."
 
         result = load_model(str(MODEL_PATH)).predict(
-            frame, imgsz=800, conf=confidence, verbose=False
+            frame,
+            imgsz=800,
+            conf=confidence,
+            verbose=False,
         )[0]
 
         detections = []
@@ -66,35 +68,23 @@ def analyze_image(image_bytes: bytes, confidence: float = 0.25):
         if result.boxes is not None:
             for box in result.boxes:
                 class_id = int(box.cls[0].item())
+                class_name = str(names.get(class_id, class_id))
                 detections.append({
-                    "class": str(names.get(class_id, class_id)),
+                    "class": class_name,
                     "confidence": round(float(box.conf[0].item()), 3),
                 })
 
-        return {"detections": detections}, None
-
-    except Exception as e:
-        return None, f"AI model error: {type(e).__name__}: {e}"
-
-
-            return None, "Could not read the camera image."
-        result = load_model(str(MODEL_PATH)).predict(frame, imgsz=800, conf=confidence, verbose=False)[0]
-        detections = []
-        names = result.names
-        if result.boxes is not None:
-            for box in result.boxes:
-                class_id = int(box.cls[0].item())
-                detections.append({
-                    "class": str(names.get(class_id, class_id)),
-                    "confidence": round(float(box.conf[0].item()), 3),
-                })
         counts = {name: 0 for name in PPE_CLASSES}
+
         for detection in detections:
-            if detection["class"] in counts:
-                counts[detection["class"]] += 1
+            class_name = detection["class"].strip().lower()
+            if class_name in counts:
+                counts[class_name] += 1
+
         return {"detections": detections, "counts": counts}, None
+
     except Exception as exc:
-        return None, f"Model prediction failed: {exc}"
+        return None, f"Model prediction failed: {type(exc).__name__}: {exc}"
 
 def make_client() -> Client:
     # Read Streamlit secrets when configured; environment variables are a local fallback.
