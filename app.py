@@ -39,13 +39,40 @@ st.set_page_config(page_title="TowerSafe | PPE Inspection", page_icon="🦺", la
 def load_model(model_path: str):
     return YOLO(model_path)
 
+
 def analyze_image(image_bytes: bytes, confidence: float = 0.25):
-   if not MODEL_PATH.exists():
-    return None, f"DEBUG: Model path checked: {MODEL_PATH} | App folder: {APP_DIR} | Files here: {[p.name for p in APP_DIR.iterdir()]}"
+    if not MODEL_PATH.exists():
+        return None, (
+            f"DEBUG: Model path checked: {MODEL_PATH} | "
+            f"App folder: {APP_DIR} | "
+            f"Files here: {[p.name for p in APP_DIR.iterdir()]}"
+        )
+
     try:
         raw = np.frombuffer(image_bytes, dtype=np.uint8)
         frame = cv2.imdecode(raw, cv2.IMREAD_COLOR)
         if frame is None:
+            return None, "Could not read the camera image."
+
+        result = load_model(str(MODEL_PATH)).predict(
+            frame, imgsz=800, conf=confidence, verbose=False
+        )[0]
+
+        detections = []
+        names = result.names
+        if result.boxes is not None:
+            for box in result.boxes:
+                class_id = int(box.cls[0].item())
+                detections.append({
+                    "class": str(names.get(class_id, class_id)),
+                    "confidence": round(float(box.conf[0].item()), 3),
+                })
+
+        return {"detections": detections}, None
+
+    except Exception as e:
+        return None, f"AI model error: {type(e).__name__}: {e}"
+
             return None, "Could not read the camera image."
         result = load_model(str(MODEL_PATH)).predict(frame, imgsz=800, conf=confidence, verbose=False)[0]
         detections = []
