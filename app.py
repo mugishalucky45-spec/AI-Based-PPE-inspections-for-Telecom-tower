@@ -89,6 +89,24 @@ def get_user_email(user):
         return ""
     return getattr(user, "email", "") or (user.get("email", "") if isinstance(user, dict) else "")
 
+
+def get_user_role(client, user_id):
+    """Return the user's role from the user_roles table."""
+    try:
+        response = (
+            client.table("user_roles")
+            .select("role")
+            .eq("user_id", user_id)
+            .limit(1)
+            .execute()
+        )
+        if response.data:
+            return response.data[0]["role"]
+    except Exception as e:
+        st.error(f"Could not load user role: {e}")
+
+    return "worker"
+
 def get_inspector_role(client, user_id):
     try:
         response = client.table("inspector_roles").select("inspector_name").eq("user_id", user_id).limit(1).execute()
@@ -218,7 +236,9 @@ if not user_id:
     st.stop()
 
 inspector_name_from_role = get_inspector_role(client, user_id)
-is_inspector = bool(inspector_name_from_role)
+user_role = get_user_role(client, user_id)
+is_inspector = user_role in ("inspector", "administrator")
+is_administrator = user_role == "administrator"
 with st.sidebar:
     st.write(f"Signed in: {email or user_id}")
     st.write(f"Role: {'Inspector' if is_inspector else 'Worker'}")
@@ -230,10 +250,78 @@ with st.sidebar:
         st.session_state.auth_user = None
         st.session_state.pop("active_inspection", None)
         st.rerun()
-    if is_inspector:
-        page = st.radio("Inspector menu", ["Inspector review", "Inspection records", "Notifications"])
-    else:
-        page = st.radio("Worker menu", ["Worker inspection", "Worker status", "Notifications"])
+   
+if is_administrator:
+    page = st.radio(
+        "Administrator menu",
+        ["Inspector review", "Inspection records", "Notifications", "Tower site management"]
+    )
+elif is_inspector:
+    page = st.radio(
+        "Inspector menu",
+        ["Inspector review", "Inspection records", "Notifications", "Tower site management"]
+    )
+else:
+    page = st.radio(
+        "Worker menu",
+        ["Worker inspection", "Worker status", "Notifications"]
+    )
+
+
+if page == "Tower site management":
+    st.title("Tower Site Management")
+    st.write("Register and manage MTN and Airtel tower sites.")
+
+    with st.form("register_tower_site"):
+        site_id = st.text_input("Site ID")
+        site_name = st.text_input("Site Name")
+        province = st.selectbox(
+            "Province",
+            ["Kigali City", "Eastern Province", "Western Province",
+             "Southern Province", "Northern Province"]
+        )
+        district = st.text_input("District")
+        sector = st.text_input("Sector")
+        activity = st.selectbox("Activity", ["MTN", "Airtel"])
+
+        submitted = st.form_submit_button("Register Tower Site")
+
+    if submitted:
+        if not all([site_id.strip(), site_name.strip(),
+                    district.strip(), sector.strip()]):
+            st.error("Please complete all tower site fields.")
+        else:
+            try:
+                client.table("tower_sites").insert({
+                    "site_id": site_id.strip(),
+                    "site_name": site_name.strip(),
+                    "province": province,
+                    "district": district.strip(),
+                    "sector": sector.strip(),
+                    "activity": activity,
+                }).execute()
+                st.success("Tower site registered successfully.")
+            except Exception as e:
+                st.error(
+                    "Could not register the tower site. "
+                    "Check whether the Site ID already exists and verify database permissions."
+                )
+
+    st.subheader("Registered Tower Sites")
+    try:
+        sites = (
+            client.table("tower_sites")
+            .select("site_id, site_name, province, district, sector, activity")
+            .order("site_id")
+            .execute()
+        )
+        st.dataframe(sites.data, use_container_width=True)
+    except Exception:
+        st.error("Could not load tower sites. Check database permissions.")
+
+    st.stop()
+
+
 
 st.markdown('<div class="hero"><h1>TowerSafe PPE Inspection</h1><p>Front and back photo then inspector review.</p></div>', unsafe_allow_html=True)
 st.caption("PLEASE INSERT BELOW INFORMATION.")
