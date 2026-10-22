@@ -58,7 +58,11 @@ def analyze_image(image_bytes: bytes, confidence: float = 0.25):
         if frame is None:
             return None, "Could not read the camera image."
 
-        result = load_model(str(MODEL_PATH)).predict(
+      
+        model = load_model(str(MODEL_PATH))
+        st.sidebar.write("YOLO model class names:", model.names)
+
+        result = model.predict(
             frame,
             imgsz=800,
             conf=confidence,
@@ -66,6 +70,7 @@ def analyze_image(image_bytes: bytes, confidence: float = 0.25):
         )[0]
 
         detections = []
+
         names = result.names
 
         if result.boxes is not None:
