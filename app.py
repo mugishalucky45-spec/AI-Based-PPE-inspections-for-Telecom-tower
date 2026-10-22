@@ -18,9 +18,6 @@ MODEL_PATH = Path(os.environ.get(
     str(APP_DIR / "best.pt")
 ))
 
-st.sidebar.write("Model path:", str(MODEL_PATH))
-st.sidebar.write("Model file exists:", MODEL_PATH.is_file())
-
 BUCKET = "inspection-photos"
 PPE_CLASSES = ["helmet", "gloves", "safety_vest", "safety_shoes", "harness"]
 REGION_RANGES = {
@@ -60,7 +57,7 @@ def analyze_image(image_bytes: bytes, confidence: float = 0.25):
 
       
         model = load_model(str(MODEL_PATH))
-        st.sidebar.write("YOLO model class names:", model.names)
+       
 
         result = model.predict(
             frame,
