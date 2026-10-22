@@ -40,8 +40,8 @@ def load_model(model_path: str):
     return YOLO(model_path)
 
 def analyze_image(image_bytes: bytes, confidence: float = 0.25):
-    if not MODEL_PATH.exists():
-        return None, f"YOLO model file not found on this app server: {MODEL_PATH}. Configure PPE_MODEL_PATH and deploy the .pt model file."
+   if not MODEL_PATH.exists():
+    return None, f"DEBUG: Model path checked: {MODEL_PATH} | App folder: {APP_DIR} | Files here: {[p.name for p in APP_DIR.iterdir()]}"
     try:
         raw = np.frombuffer(image_bytes, dtype=np.uint8)
         frame = cv2.imdecode(raw, cv2.IMREAD_COLOR)
