@@ -11,11 +11,13 @@ import streamlit as st
 from supabase import create_client, Client
 from ultralytics import YOLO
 
+
 APP_DIR = Path(__file__).resolve().parent
 MODEL_PATH = Path(os.environ.get(
     "PPE_MODEL_PATH",
-    r"C:\ppe_yolov8_clean\ppe_yolov8_clean\runs\harness_experiments\img800_trial\weights\best.pt"
+    str(APP_DIR / "best.pt")
 ))
+
 BUCKET = "inspection-photos"
 PPE_CLASSES = ["helmet", "gloves", "safety_vest", "safety_shoes", "harness"]
 REGION_RANGES = {
