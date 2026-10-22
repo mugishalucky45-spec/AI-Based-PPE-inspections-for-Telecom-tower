@@ -40,6 +40,7 @@ def load_model(model_path: str):
     return YOLO(model_path)
 
 
+
 def analyze_image(image_bytes: bytes, confidence: float = 0.25):
     if not MODEL_PATH.exists():
         return None, (
@@ -51,6 +52,7 @@ def analyze_image(image_bytes: bytes, confidence: float = 0.25):
     try:
         raw = np.frombuffer(image_bytes, dtype=np.uint8)
         frame = cv2.imdecode(raw, cv2.IMREAD_COLOR)
+
         if frame is None:
             return None, "Could not read the camera image."
 
@@ -60,6 +62,7 @@ def analyze_image(image_bytes: bytes, confidence: float = 0.25):
 
         detections = []
         names = result.names
+
         if result.boxes is not None:
             for box in result.boxes:
                 class_id = int(box.cls[0].item())
@@ -72,6 +75,7 @@ def analyze_image(image_bytes: bytes, confidence: float = 0.25):
 
     except Exception as e:
         return None, f"AI model error: {type(e).__name__}: {e}"
+
 
             return None, "Could not read the camera image."
         result = load_model(str(MODEL_PATH)).predict(frame, imgsz=800, conf=confidence, verbose=False)[0]
