@@ -502,7 +502,7 @@ elif page == "Inspector review":
         ppe = rec.get("ppe_results") or {}
         st.write(f"**Technician:** {rec.get('technician_name')} | **Region:** {ppe.get('region', 'Not recorded')} | **Site:** {rec.get('site_id')} — {rec.get('site_name')}")
         col_front, col_back = st.columns(2)
-               def make_ppe_status_table(analysis):
+        def make_ppe_status_table(analysis):
             display_names = {
                 "helmet": "Helmet",
                 "gloves": "Safety Gloves",
