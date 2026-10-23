@@ -421,18 +421,30 @@ if page == "Worker inspection":
             st.session_state.pop("back_capture", None)
             st.success("Details accepted. Capture the front and back views below.")
     active = st.session_state.get("active_inspection")
+
     if active:
         st.divider()
         st.subheader("2. Capture live camera evidence")
-        st.write(f"**Technician:** {active['technician']} · **Site:** {active['site_id']} — {active['site_name']} · **Region:** {active['region']}")
-        st.caption("Allow camera access when your browser asks. Capture both views before submitting.")
-      front_col, back_col = st.columns(2)
+
+        st.write(
+            f"**Technician:** {active['technician']} · "
+            f"**Site:** {active['site_id']} — {active['site_name']} · "
+            f"**Region:** {active['region']}"
+        )
+
+        st.caption(
+            "Allow camera access when your browser asks. "
+            "Capture all four views before submitting."
+        )
+
+        # First row: Front and Back
+        front_col, back_col = st.columns(2)
 
         with front_col:
             st.markdown("#### Front view")
             front = st.camera_input(
                 "Take front-view photo",
-                key="front_camera"
+                key="front_camera",
             )
             if front is not None:
                 st.session_state.front_capture = front.getvalue()
@@ -441,7 +453,7 @@ if page == "Worker inspection":
             st.markdown("#### Back view")
             back = st.camera_input(
                 "Take back-view photo",
-                key="back_camera"
+                key="back_camera",
             )
             if back is not None:
                 st.session_state.back_capture = back.getvalue()
@@ -453,7 +465,7 @@ if page == "Worker inspection":
             st.markdown("#### Left-side view")
             left = st.camera_input(
                 "Take left-side photo",
-                key="left_camera"
+                key="left_camera",
             )
             if left is not None:
                 st.session_state.left_capture = left.getvalue()
@@ -462,12 +474,12 @@ if page == "Worker inspection":
             st.markdown("#### Right-side view")
             right = st.camera_input(
                 "Take right-side photo",
-                key="right_camera"
+                key="right_camera",
             )
             if right is not None:
                 st.session_state.right_capture = right.getvalue()
 
-        # Keep the Submit button after both camera columns
+        # Submit all four photos
         if st.button(
             "Submit evidence to inspector",
             type="primary",
@@ -487,20 +499,19 @@ if page == "Worker inspection":
                 st.error(
                     "Please capture all four views: "
                     "front, back, left, and right."
-                )   
-                
+                )
+
             else:
-                     # Keep your existing photo analysis and submission code here.
                 try:
                     inspection_code = active["inspection_code"]
 
-                    # Analyze all four photos.
+                    # Analyze all four photos
                     front_analysis, front_error = analyze_image(front_bytes)
                     back_analysis, back_error = analyze_image(back_bytes)
                     left_analysis, left_error = analyze_image(left_bytes)
                     right_analysis, right_error = analyze_image(right_bytes)
 
-                    # Upload all four photos.
+                    # Upload all four photos
                     front_path = upload_photo(
                         client, user_id, inspection_code, "front", front_bytes
                     )
@@ -514,6 +525,7 @@ if page == "Worker inspection":
                         client, user_id, inspection_code, "right", right_bytes
                     )
 
+                    # Store analysis results
                     ppe_results = {
                         "inspection_code": inspection_code,
                         "region": active["region"],
@@ -533,6 +545,7 @@ if page == "Worker inspection":
                         ],
                     }
 
+                    # Prepare the database record
                     insert_data = {
                         "technician_name": active["technician"],
                         "site_id": active["site_id"],
@@ -544,29 +557,34 @@ if page == "Worker inspection":
                         "ppe_results": ppe_results,
                     }
 
-                        client.table("inspections").insert(
-                            insert_data
-                         ).execute()
+                    # Insert inspection into Supabase
+                    client.table("inspections").insert(
+                        insert_data
+                    ).execute()
 
-                        for key in [
-                            "active_inspection",
-                            "front_capture",
-                            "back_capture",
-                            "left_capture",
-                            "right_capture",
-                        ]:
-                            st.session_state.pop(key, None)
+                    # Clear session state after successful submission
+                    for key in [
+                        "active_inspection",
+                        "front_capture",
+                        "back_capture",
+                        "left_capture",
+                        "right_capture",
+                    ]:
+                        st.session_state.pop(key, None)
 
-                        st.success(
-                            f"Evidence submitted. Reference: {inspection_code}"
-                        )
-                        st.warning(
-                            "UNDER REVIEW — Do not continue working until "
-                            "the inspector records approval."
-                        )
-                        st.rerun()
+                    st.success(
+                        f"Evidence submitted. Reference: {inspection_code}"
+                    )
 
-                 except Exception as exc:
+                    st.warning(
+                        "UNDER REVIEW — Do not continue working until "
+                        "the inspector records approval."
+                    )
+
+                    st.rerun()
+
+                except Exception as exc:
+                    st.error(f"Submission failed: {exc}")
                         st.error(f"Submission failed: {exc}")
                         st.info("If a photo uploaded before the error, it may remain in private Storage. We can clean up incomplete uploads after verifying the setup.")
 
