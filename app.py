@@ -452,7 +452,7 @@ if page == "Worker inspection":
                  else:
                      # Keep your existing photo analysis and submission code here.
                  try:
-                    inspection_code = active["inspection_code"]
+                     inspection_code = active["inspection_code"]
 
                     # Analyze all four photos.
                     front_analysis, front_error = analyze_image(front_bytes)
