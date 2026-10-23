@@ -502,7 +502,7 @@ if page == "Worker inspection":
                              "front_photo_path": front_path,
                              "back_photo_path": back_path,
                              "ppe_results": ppe_results,
-                        }
+                         }
 
                          client.table("inspections").insert(
                             insert_data
