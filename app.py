@@ -66,7 +66,7 @@ def analyze_image(image_bytes: bytes, confidence: float = 0.25):
             verbose=False,
         )[0]
 
-         detections = []
+        detections = []
 
         names = result.names
 
