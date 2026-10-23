@@ -437,10 +437,10 @@ if page == "Worker inspection":
             back = st.camera_input("Take back-view photo", key="back_camera")
             if back is not None:
                 st.session_state.back_capture = back.getvalue()
-                       if st.button(
+                      if st.button(
                           "Submit evidence to inspector",
-                           type="primary",
-                           use_container_width=True,
+                          type="primary",
+                          use_container_width=True,
             ):
             front_bytes = st.session_state.get("front_capture")
             back_bytes = st.session_state.get("back_capture")
@@ -541,7 +541,7 @@ elif page == "Worker status":
     st.subheader("Your inspection status")
     st.caption("This list comes from the shared Supabase database and is limited to your signed-in account.")
     if st.button("Refresh status"):
-        st.rerun()
+       st.rerun()
     if not items:
         st.info("You have not submitted an inspection yet.")
     for rec in items:
@@ -562,7 +562,7 @@ elif page == "Inspector review":
     pending = [rec for rec in items if rec.get("status") == "UNDER REVIEW"]
     st.subheader(f"Pending inspections ({len(pending)})")
     if st.button("Refresh pending inspections"):
-        st.rerun()
+       st.rerun()
     if not pending:
         st.success("No inspections are waiting for review.")
     else:
