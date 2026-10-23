@@ -493,7 +493,7 @@ if page == "Worker inspection":
                              ],
                          }
 
-                         insert_data = {
+                        insert_data = {
                              "technician_name": active["technician"],
                              "site_id": active["site_id"],
                              "site_name": active["site_name"],
