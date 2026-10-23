@@ -112,7 +112,7 @@ def analyze_image(image_bytes: bytes, confidence: float = 0.25):
 
     except Exception as exc:
         return None, f"Model prediction failed: {type(exc).__name__}: {exc}"
-        # Display the saved YOLO class names
+# Display the saved YOLO class names
 if "yolo_class_names" in st.session_state:
     st.write(
         "DEBUG - YOLO model class names:",
