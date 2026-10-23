@@ -59,12 +59,12 @@ def analyze_image(image_bytes: bytes, confidence: float = 0.25):
         model = load_model(str(MODEL_PATH))
        
 
-        result = model.predict(
-            frame,
-            imgsz=800,
-            conf=confidence,
-            verbose=False,
-        )[0]
+       result = model.predict(
+           frame,
+           imgsz=800,
+           conf=max(confidence, 0.50),
+           verbose=False,
+       )[0]
 
         detections = []
 
