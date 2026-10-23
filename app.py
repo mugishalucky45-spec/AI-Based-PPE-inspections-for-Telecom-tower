@@ -71,7 +71,7 @@ def analyze_image(image_bytes: bytes, confidence: float = 0.25):
         names = result.names
 
         # Temporary debugging information
-        st.write("DEBUG - YOLO model class names:", names)
+        st.session_state["yolo_class_names"] = names
 
         if result.boxes is not None:
             for box in result.boxes:
@@ -112,6 +112,12 @@ def analyze_image(image_bytes: bytes, confidence: float = 0.25):
 
     except Exception as exc:
         return None, f"Model prediction failed: {type(exc).__name__}: {exc}"
+        # Display the saved YOLO class names
+if "yolo_class_names" in st.session_state:
+    st.write(
+        "DEBUG - YOLO model class names:",
+        st.session_state["yolo_class_names"]
+    )
 
 def make_client() -> Client:
     # Read Streamlit secrets when configured; environment variables are a local fallback.
