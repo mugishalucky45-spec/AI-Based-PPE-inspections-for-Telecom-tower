@@ -435,6 +435,21 @@ if page == "Worker inspection":
         with back_col:
             st.markdown("#### Back view")
             back = st.camera_input("Take back-view photo", key="back_camera")
+            st.markdown("#### Left-side view")
+            left = st.camera_input(
+                "Take left-side photo",
+                key="left_camera"
+            )
+            if left is not None:
+                st.session_state.left_capture = left.getvalue()
+
+            st.markdown("#### Right-side view")
+            right = st.camera_input(
+                 "Take right-side photo",
+                  key="right_camera"
+            )    
+            if right is not None:
+                st.session_state.right_capture = right.getvalue()
             if back is not None:
                 st.session_state.back_capture = back.getvalue()
             if st.button(
