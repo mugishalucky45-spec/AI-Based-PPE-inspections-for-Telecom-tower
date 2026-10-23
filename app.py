@@ -70,8 +70,8 @@ def analyze_image(image_bytes: bytes, confidence: float = 0.25):
 
         names = result.names
 
-        # Temporary debugging code
-        print("YOLO model class names:", names)
+        # Temporary debugging information
+        st.write("DEBUG - YOLO model class names:", names)
 
         if result.boxes is not None:
             for box in result.boxes:
