@@ -502,24 +502,70 @@ elif page == "Inspector review":
         ppe = rec.get("ppe_results") or {}
         st.write(f"**Technician:** {rec.get('technician_name')} | **Region:** {ppe.get('region', 'Not recorded')} | **Site:** {rec.get('site_id')} — {rec.get('site_name')}")
         col_front, col_back = st.columns(2)
+               def make_ppe_status_table(analysis):
+            display_names = {
+                "helmet": "Helmet",
+                "gloves": "Safety Gloves",
+                "safety_vest": "Reflective Vest",
+                "safety_shoes": "Safety Boots",
+                "harness": "Full-Body Safety Harness",
+            }
+
+            if not analysis or "counts" not in analysis:
+                return None
+
+            counts = analysis["counts"]
+
+            rows = []
+            for ppe_class in PPE_CLASSES:
+                detected = counts.get(ppe_class, 0) > 0
+
+                rows.append({
+                    "PPE Item": display_names.get(
+                        ppe_class, ppe_class.replace("_", " ").title()
+                    ),
+                    "Status": "Detected" if detected else "Missing",
+                })
+
+            return pd.DataFrame(rows)
+
         with col_front:
             st.markdown("#### Front view")
-            show_private_photo(client, rec.get("front_photo_path"), "Front-view evidence")
+            show_private_photo(
+                client, rec.get("front_photo_path"), "Front-view evidence"
+            )
+
             front_analysis = ppe.get("front_analysis")
-            if front_analysis and front_analysis.get("detections"):
-                st.dataframe(pd.DataFrame(front_analysis["detections"]), hide_index=True, use_container_width=True)
+            front_table = make_ppe_status_table(front_analysis)
+
+            if front_table is not None:
+                st.dataframe(
+                    front_table,
+                    hide_index=True,
+                    use_container_width=True,
+                )
             elif front_analysis:
-                st.warning("The model did not detect any configured PPE classes in this view.")
+                st.warning("PPE analysis is unavailable. Inspect the photo manually.")
             else:
                 st.info("Model analysis unavailable; inspect the photo manually.")
+
         with col_back:
             st.markdown("#### Back view")
-            show_private_photo(client, rec.get("back_photo_path"), "Back-view evidence")
+            show_private_photo(
+                client, rec.get("back_photo_path"), "Back-view evidence"
+            )
+
             back_analysis = ppe.get("back_analysis")
-            if back_analysis and back_analysis.get("detections"):
-                st.dataframe(pd.DataFrame(back_analysis["detections"]), hide_index=True, use_container_width=True)
+            back_table = make_ppe_status_table(back_analysis)
+
+            if back_table is not None:
+                st.dataframe(
+                    back_table,
+                    hide_index=True,
+                    use_container_width=True,
+                )
             elif back_analysis:
-                st.warning("The model did not detect any configured PPE classes in this view.")
+                st.warning("PPE analysis is unavailable. Inspect the photo manually.")
             else:
                 st.info("Model analysis unavailable; inspect the photo manually.")
         for err in ppe.get("analysis_errors", []):
