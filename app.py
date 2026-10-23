@@ -439,25 +439,18 @@ if page == "Worker inspection":
                 st.session_state.back_capture = back.getvalue()
             if st.button(
                 "Submit evidence to inspector",
-                type="primary",
-                use_container_width=True,
-            ):
-                front_bytes = st.session_state.get("front_capture")
-                back_bytes = st.session_state.get("back_capture")
-                left_bytes = st.session_state.get("left_capture")
-                right_bytes = st.session_state.get("right_capture")
+                 type="primary",
+                 use_container_width=True,
+             ):
+                 front_bytes = st.session_state.get("front_capture")
+                 back_bytes = st.session_state.get("back_capture")
+                 left_bytes = st.session_state.get("left_capture")
+                 right_bytes = st.session_state.get("right_capture")
 
-                if not all([
-                front_bytes,
-                back_bytes,
-                left_bytes,
-                right_bytes,
-            ]):
-                     st.error(
-                    "Please capture all four views: "
-                    "front, back, left, and right."
-                )
-            else:
+                 if not all([front_bytes, back_bytes, left_bytes, right_bytes]):
+                     st.error("Please capture all four views: front, back, left, and right.")
+                 else:
+                     # Keep your existing photo analysis and submission code here.
                 try:
                     inspection_code = active["inspection_code"]
 
