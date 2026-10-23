@@ -526,7 +526,7 @@ if page == "Worker inspection":
                         )
                         st.rerun()
 
-                    except Exception as exc:
+                     except Exception as exc:
                         st.error(f"Submission failed: {exc}")
                         st.info("If a photo uploaded before the error, it may remain in private Storage. We can clean up incomplete uploads after verifying the setup.")
 
