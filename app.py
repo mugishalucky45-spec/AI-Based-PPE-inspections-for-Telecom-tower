@@ -451,8 +451,8 @@ if page == "Worker inspection":
                      st.error("Please capture all four views: front, back, left, and right.")
                  else:
                      # Keep your existing photo analysis and submission code here.
-                 try:
-                     inspection_code = active["inspection_code"]
+                     try:
+                        inspection_code = active["inspection_code"]
 
                     # Analyze all four photos.
                     front_analysis, front_error = analyze_image(front_bytes)
