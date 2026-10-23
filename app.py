@@ -585,8 +585,11 @@ if page == "Worker inspection":
 
                 except Exception as exc:
                     st.error(f"Submission failed: {exc}")
-                        st.info("If a photo uploaded before the error, it may remain in private Storage. We can clean up incomplete uploads after verifying the setup.")
-
+                    st.info(
+                        "If a photo uploaded before the error, it may remain "
+                        "in private Storage. We can clean up incomplete uploads "
+                        "after verifying the setup."
+                    )
 elif page == "Worker status":
     st.subheader("Your inspection status")
     st.caption("This list comes from the shared Supabase database and is limited to your signed-in account.")
