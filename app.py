@@ -442,18 +442,18 @@ if page == "Worker inspection":
                 type="primary",
                 use_container_width=True,
             ):
-            front_bytes = st.session_state.get("front_capture")
-            back_bytes = st.session_state.get("back_capture")
-            left_bytes = st.session_state.get("left_capture")
-            right_bytes = st.session_state.get("right_capture")
+                front_bytes = st.session_state.get("front_capture")
+                back_bytes = st.session_state.get("back_capture")
+                left_bytes = st.session_state.get("left_capture")
+                right_bytes = st.session_state.get("right_capture")
 
-            if not all([
+                if not all([
                 front_bytes,
                 back_bytes,
                 left_bytes,
                 right_bytes,
             ]):
-                st.error(
+                     st.error(
                     "Please capture all four views: "
                     "front, back, left, and right."
                 )
