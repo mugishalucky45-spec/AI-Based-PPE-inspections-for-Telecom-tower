@@ -504,7 +504,7 @@ if page == "Worker inspection":
                              "ppe_results": ppe_results,
                          }
 
-                         client.table("inspections").insert(
+                        client.table("inspections").insert(
                             insert_data
                          ).execute()
 
