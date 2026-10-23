@@ -454,14 +454,14 @@ if page == "Worker inspection":
                      try:
                         inspection_code = active["inspection_code"]
 
-                    # Analyze all four photos.
-                    front_analysis, front_error = analyze_image(front_bytes)
-                    back_analysis, back_error = analyze_image(back_bytes)
-                    left_analysis, left_error = analyze_image(left_bytes)
-                    right_analysis, right_error = analyze_image(right_bytes)
+                        # Analyze all four photos.
+                        front_analysis, front_error = analyze_image(front_bytes)
+                        back_analysis, back_error = analyze_image(back_bytes)
+                        left_analysis, left_error = analyze_image(left_bytes)
+                        right_analysis, right_error = analyze_image(right_bytes)
 
-                    # Upload all four photos.
-                    front_path = upload_photo(
+                        # Upload all four photos.
+                        front_path = upload_photo(
                         client, user_id, inspection_code, "front", front_bytes
                     )
                     back_path = upload_photo(
