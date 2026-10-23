@@ -426,15 +426,30 @@ if page == "Worker inspection":
         st.subheader("2. Capture live camera evidence")
         st.write(f"**Technician:** {active['technician']} · **Site:** {active['site_id']} — {active['site_name']} · **Region:** {active['region']}")
         st.caption("Allow camera access when your browser asks. Capture both views before submitting.")
-        front_col, back_col = st.columns(2)
+      front_col, back_col = st.columns(2)
+
         with front_col:
             st.markdown("#### Front view")
-            front = st.camera_input("Take front-view photo", key="front_camera")
+            front = st.camera_input(
+                "Take front-view photo",
+                key="front_camera"
+            )
             if front is not None:
                 st.session_state.front_capture = front.getvalue()
+
         with back_col:
             st.markdown("#### Back view")
-            back = st.camera_input("Take back-view photo", key="back_camera")
+            back = st.camera_input(
+                "Take back-view photo",
+                key="back_camera"
+            )
+            if back is not None:
+                st.session_state.back_capture = back.getvalue()
+
+        # Second row: Left and Right
+        left_col, right_col = st.columns(2)
+
+        with left_col:
             st.markdown("#### Left-side view")
             left = st.camera_input(
                 "Take left-side photo",
@@ -443,81 +458,91 @@ if page == "Worker inspection":
             if left is not None:
                 st.session_state.left_capture = left.getvalue()
 
+        with right_col:
             st.markdown("#### Right-side view")
             right = st.camera_input(
-                 "Take right-side photo",
-                  key="right_camera"
-            )    
+                "Take right-side photo",
+                key="right_camera"
+            )
             if right is not None:
                 st.session_state.right_capture = right.getvalue()
-            if back is not None:
-                st.session_state.back_capture = back.getvalue()
-            if st.button(
-                "Submit evidence to inspector",
-                 type="primary",
-                 use_container_width=True,
-             ):
-                 front_bytes = st.session_state.get("front_capture")
-                 back_bytes = st.session_state.get("back_capture")
-                 left_bytes = st.session_state.get("left_capture")
-                 right_bytes = st.session_state.get("right_capture")
 
-                 if not all([front_bytes, back_bytes, left_bytes, right_bytes]):
-                     st.error("Please capture all four views: front, back, left, and right.")
-                 else:
+        # Keep the Submit button after both camera columns
+        if st.button(
+            "Submit evidence to inspector",
+            type="primary",
+            use_container_width=True,
+        ):
+            front_bytes = st.session_state.get("front_capture")
+            back_bytes = st.session_state.get("back_capture")
+            left_bytes = st.session_state.get("left_capture")
+            right_bytes = st.session_state.get("right_capture")
+
+            if not all([
+                front_bytes,
+                back_bytes,
+                left_bytes,
+                right_bytes,
+            ]):
+                st.error(
+                    "Please capture all four views: "
+                    "front, back, left, and right."
+                )   
+                
+            else:
                      # Keep your existing photo analysis and submission code here.
-                     try:
-                        inspection_code = active["inspection_code"]
+                try:
+                    inspection_code = active["inspection_code"]
 
-                        # Analyze all four photos.
-                        front_analysis, front_error = analyze_image(front_bytes)
-                        back_analysis, back_error = analyze_image(back_bytes)
-                        left_analysis, left_error = analyze_image(left_bytes)
-                        right_analysis, right_error = analyze_image(right_bytes)
+                    # Analyze all four photos.
+                    front_analysis, front_error = analyze_image(front_bytes)
+                    back_analysis, back_error = analyze_image(back_bytes)
+                    left_analysis, left_error = analyze_image(left_bytes)
+                    right_analysis, right_error = analyze_image(right_bytes)
 
-                        # Upload all four photos.
-                        front_path = upload_photo(
-                             client, user_id, inspection_code, "front", front_bytes
-                        )
-                        back_path = upload_photo(
-                            client, user_id, inspection_code, "back", back_bytes
-                        )
-                        left_path = upload_photo(
-                            client, user_id, inspection_code, "left", left_bytes
-                        )
-                        right_path = upload_photo(
+                    # Upload all four photos.
+                    front_path = upload_photo(
+                        client, user_id, inspection_code, "front", front_bytes
+                    )
+                    back_path = upload_photo(
+                        client, user_id, inspection_code, "back", back_bytes
+                    )
+                    left_path = upload_photo(
+                        client, user_id, inspection_code, "left", left_bytes
+                    )
+                    right_path = upload_photo(
                         client, user_id, inspection_code, "right", right_bytes
-                        )
+                    )
 
-                        ppe_results = {
-                            "inspection_code": inspection_code,
-                            "region": active["region"],
-                            "front_analysis": front_analysis,
-                            "back_analysis": back_analysis,
-                            "left_analysis": left_analysis,
-                            "right_analysis": right_analysis,
-                            "left_photo_path": left_path,
-                            "right_photo_path": right_path,
-                            "analysis_errors": [
-                                err for err in [
-                                    front_error,
-                                    back_error,
-                                    left_error,
-                                    right_error,
-                                ] if err
-                             ],
-                         }
+                    ppe_results = {
+                        "inspection_code": inspection_code,
+                        "region": active["region"],
+                        "front_analysis": front_analysis,
+                        "back_analysis": back_analysis,
+                        "left_analysis": left_analysis,
+                        "right_analysis": right_analysis,
+                        "left_photo_path": left_path,
+                        "right_photo_path": right_path,
+                        "analysis_errors": [
+                            err for err in [
+                                front_error,
+                                back_error,
+                                left_error,
+                                right_error,
+                            ] if err
+                        ],
+                    }
 
-                        insert_data = {
-                             "technician_name": active["technician"],
-                             "site_id": active["site_id"],
-                             "site_name": active["site_name"],
-                             "worker_user_id": user_id,
-                             "status": "UNDER REVIEW",
-                             "front_photo_path": front_path,
-                             "back_photo_path": back_path,
-                             "ppe_results": ppe_results,
-                         }
+                    insert_data = {
+                        "technician_name": active["technician"],
+                        "site_id": active["site_id"],
+                        "site_name": active["site_name"],
+                        "worker_user_id": user_id,
+                        "status": "UNDER REVIEW",
+                        "front_photo_path": front_path,
+                        "back_photo_path": back_path,
+                        "ppe_results": ppe_results,
+                    }
 
                         client.table("inspections").insert(
                             insert_data
@@ -541,7 +566,7 @@ if page == "Worker inspection":
                         )
                         st.rerun()
 
-                     except Exception as exc:
+                 except Exception as exc:
                         st.error(f"Submission failed: {exc}")
                         st.info("If a photo uploaded before the error, it may remain in private Storage. We can clean up incomplete uploads after verifying the setup.")
 
