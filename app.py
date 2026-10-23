@@ -437,25 +437,69 @@ if page == "Worker inspection":
             back = st.camera_input("Take back-view photo", key="back_camera")
             if back is not None:
                 st.session_state.back_capture = back.getvalue()
-        if st.button("Submit evidence to inspector", type="primary", use_container_width=True):
+                       if st.button(
+            "Submit evidence to inspector",
+            type="primary",
+            use_container_width=True,
+        ):
             front_bytes = st.session_state.get("front_capture")
             back_bytes = st.session_state.get("back_capture")
-            if not front_bytes or not back_bytes:
-                st.error("Please capture both front and back views before submitting.")
+            left_bytes = st.session_state.get("left_capture")
+            right_bytes = st.session_state.get("right_capture")
+
+            if not all([
+                front_bytes,
+                back_bytes,
+                left_bytes,
+                right_bytes,
+            ]):
+                st.error(
+                    "Please capture all four views: "
+                    "front, back, left, and right."
+                )
             else:
                 try:
                     inspection_code = active["inspection_code"]
+
+                    # Analyze all four photos.
                     front_analysis, front_error = analyze_image(front_bytes)
                     back_analysis, back_error = analyze_image(back_bytes)
-                    front_path = upload_photo(client, user_id, inspection_code, "front", front_bytes)
-                    back_path = upload_photo(client, user_id, inspection_code, "back", back_bytes)
+                    left_analysis, left_error = analyze_image(left_bytes)
+                    right_analysis, right_error = analyze_image(right_bytes)
+
+                    # Upload all four photos.
+                    front_path = upload_photo(
+                        client, user_id, inspection_code, "front", front_bytes
+                    )
+                    back_path = upload_photo(
+                        client, user_id, inspection_code, "back", back_bytes
+                    )
+                    left_path = upload_photo(
+                        client, user_id, inspection_code, "left", left_bytes
+                    )
+                    right_path = upload_photo(
+                        client, user_id, inspection_code, "right", right_bytes
+                    )
+
                     ppe_results = {
                         "inspection_code": inspection_code,
                         "region": active["region"],
                         "front_analysis": front_analysis,
                         "back_analysis": back_analysis,
-                        "analysis_errors": [err for err in [front_error, back_error] if err],
+                        "left_analysis": left_analysis,
+                        "right_analysis": right_analysis,
+                        "left_photo_path": left_path,
+                        "right_photo_path": right_path,
+                        "analysis_errors": [
+                            err for err in [
+                                front_error,
+                                back_error,
+                                left_error,
+                                right_error,
+                            ] if err
+                        ],
                     }
+
                     insert_data = {
                         "technician_name": active["technician"],
                         "site_id": active["site_id"],
@@ -466,13 +510,29 @@ if page == "Worker inspection":
                         "back_photo_path": back_path,
                         "ppe_results": ppe_results,
                     }
-                    client.table("inspections").insert(insert_data).execute()
-                    st.session_state.pop("active_inspection", None)
-                    st.session_state.pop("front_capture", None)
-                    st.session_state.pop("back_capture", None)
-                    st.success(f"Evidence submitted. Reference: {inspection_code}")
-                    st.warning("UNDER REVIEW — Do not continue working until the inspector records approval.")
+
+                    client.table("inspections").insert(
+                        insert_data
+                    ).execute()
+
+                    for key in [
+                        "active_inspection",
+                        "front_capture",
+                        "back_capture",
+                        "left_capture",
+                        "right_capture",
+                    ]:
+                        st.session_state.pop(key, None)
+
+                    st.success(
+                        f"Evidence submitted. Reference: {inspection_code}"
+                    )
+                    st.warning(
+                        "UNDER REVIEW — Do not continue working until "
+                        "the inspector records approval."
+                    )
                     st.rerun()
+
                 except Exception as exc:
                     st.error(f"Submission failed: {exc}")
                     st.info("If a photo uploaded before the error, it may remain in private Storage. We can clean up incomplete uploads after verifying the setup.")
