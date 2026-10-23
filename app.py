@@ -66,17 +66,25 @@ def analyze_image(image_bytes: bytes, confidence: float = 0.25):
             verbose=False,
         )[0]
 
-        detections = []
+         detections = []
 
         names = result.names
+
+        # Temporary debugging code
+        print("YOLO model class names:", names)
 
         if result.boxes is not None:
             for box in result.boxes:
                 class_id = int(box.cls[0].item())
                 class_name = str(names.get(class_id, class_id))
+
                 detections.append({
                     "class": class_name,
                     "confidence": round(float(box.conf[0].item()), 3),
+                    "box": [
+                        round(float(v), 1)
+                        for v in box.xyxy[0].tolist()
+                    ],
                 })
 
         counts = {name: 0 for name in PPE_CLASSES}
