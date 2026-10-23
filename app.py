@@ -493,7 +493,7 @@ if page == "Worker inspection":
                         ],
                     }
 
-                    insert_data = {
+                         insert_data = {
                         "technician_name": active["technician"],
                         "site_id": active["site_id"],
                         "site_name": active["site_name"],
@@ -502,29 +502,29 @@ if page == "Worker inspection":
                         "front_photo_path": front_path,
                         "back_photo_path": back_path,
                         "ppe_results": ppe_results,
-                    }
+                        }
 
-                    client.table("inspections").insert(
-                        insert_data
-                    ).execute()
+                         client.table("inspections").insert(
+                         insert_data
+                         ).execute()
 
-                    for key in [
+                        for key in [
                         "active_inspection",
                         "front_capture",
                         "back_capture",
                         "left_capture",
                         "right_capture",
-                    ]:
+                        ]:
                         st.session_state.pop(key, None)
 
-                    st.success(
+                        st.success(
                         f"Evidence submitted. Reference: {inspection_code}"
-                    )
-                    st.warning(
+                        )
+                        st.warning(
                         "UNDER REVIEW — Do not continue working until "
                         "the inspector records approval."
-                    )
-                    st.rerun()
+                        )
+                        st.rerun()
 
                    except Exception as exc:
                        st.error(f"Submission failed: {exc}")
