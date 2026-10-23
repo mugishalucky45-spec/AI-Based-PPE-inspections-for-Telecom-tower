@@ -86,7 +86,21 @@ def analyze_image(image_bytes: bytes, confidence: float = 0.25):
             if class_name in counts:
                 counts[class_name] += 1
 
-        return {"detections": detections, "counts": counts}, None
+                ppe_status = {}
+
+        for ppe_class in PPE_CLASSES:
+            normalized_class = ppe_class.strip().lower()
+            ppe_status[ppe_class] = (
+                "Detected"
+                if counts.get(normalized_class, 0) > 0
+                else "Missing"
+            )
+
+        return {
+            "detections": detections,
+            "counts": counts,
+            "ppe_status": ppe_status,
+        }, None
 
     except Exception as exc:
         return None, f"Model prediction failed: {type(exc).__name__}: {exc}"
