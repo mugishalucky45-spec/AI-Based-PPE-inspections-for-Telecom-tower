@@ -438,10 +438,10 @@ if page == "Worker inspection":
             if back is not None:
                 st.session_state.back_capture = back.getvalue()
                        if st.button(
-            "Submit evidence to inspector",
-            type="primary",
-            use_container_width=True,
-        ):
+                          "Submit evidence to inspector",
+                           type="primary",
+                           use_container_width=True,
+            ):
             front_bytes = st.session_state.get("front_capture")
             back_bytes = st.session_state.get("back_capture")
             left_bytes = st.session_state.get("left_capture")
