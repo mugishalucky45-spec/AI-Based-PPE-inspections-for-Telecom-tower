@@ -462,19 +462,19 @@ if page == "Worker inspection":
 
                         # Upload all four photos.
                         front_path = upload_photo(
-                        client, user_id, inspection_code, "front", front_bytes
-                    )
-                    back_path = upload_photo(
-                        client, user_id, inspection_code, "back", back_bytes
-                    )
-                    left_path = upload_photo(
-                        client, user_id, inspection_code, "left", left_bytes
-                    )
-                    right_path = upload_photo(
+                             client, user_id, inspection_code, "front", front_bytes
+                        )
+                        back_path = upload_photo(
+                            client, user_id, inspection_code, "back", back_bytes
+                        )
+                        left_path = upload_photo(
+                            client, user_id, inspection_code, "left", left_bytes
+                        )
+                        right_path = upload_photo(
                         client, user_id, inspection_code, "right", right_bytes
-                    )
+                        )
 
-                    ppe_results = {
+                        ppe_results = {
                         "inspection_code": inspection_code,
                         "region": active["region"],
                         "front_analysis": front_analysis,
