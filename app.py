@@ -475,60 +475,60 @@ if page == "Worker inspection":
                         )
 
                         ppe_results = {
-                        "inspection_code": inspection_code,
-                        "region": active["region"],
-                        "front_analysis": front_analysis,
-                        "back_analysis": back_analysis,
-                        "left_analysis": left_analysis,
-                        "right_analysis": right_analysis,
-                        "left_photo_path": left_path,
-                        "right_photo_path": right_path,
-                        "analysis_errors": [
-                            err for err in [
-                                front_error,
-                                back_error,
-                                left_error,
-                                right_error,
-                            ] if err
-                        ],
-                    }
+                            "inspection_code": inspection_code,
+                            "region": active["region"],
+                            "front_analysis": front_analysis,
+                            "back_analysis": back_analysis,
+                            "left_analysis": left_analysis,
+                            "right_analysis": right_analysis,
+                            "left_photo_path": left_path,
+                            "right_photo_path": right_path,
+                            "analysis_errors": [
+                                err for err in [
+                                    front_error,
+                                    back_error,
+                                    left_error,
+                                    right_error,
+                                ] if err
+                             ],
+                         }
 
                          insert_data = {
-                        "technician_name": active["technician"],
-                        "site_id": active["site_id"],
-                        "site_name": active["site_name"],
-                        "worker_user_id": user_id,
-                        "status": "UNDER REVIEW",
-                        "front_photo_path": front_path,
-                        "back_photo_path": back_path,
-                        "ppe_results": ppe_results,
+                             "technician_name": active["technician"],
+                             "site_id": active["site_id"],
+                             "site_name": active["site_name"],
+                             "worker_user_id": user_id,
+                             "status": "UNDER REVIEW",
+                             "front_photo_path": front_path,
+                             "back_photo_path": back_path,
+                             "ppe_results": ppe_results,
                         }
 
                          client.table("inspections").insert(
-                         insert_data
+                            insert_data
                          ).execute()
 
                         for key in [
-                        "active_inspection",
-                        "front_capture",
-                        "back_capture",
-                        "left_capture",
-                        "right_capture",
+                            "active_inspection",
+                            "front_capture",
+                            "back_capture",
+                            "left_capture",
+                            "right_capture",
                         ]:
-                        st.session_state.pop(key, None)
+                            st.session_state.pop(key, None)
 
                         st.success(
-                        f"Evidence submitted. Reference: {inspection_code}"
+                            f"Evidence submitted. Reference: {inspection_code}"
                         )
                         st.warning(
-                        "UNDER REVIEW — Do not continue working until "
-                        "the inspector records approval."
+                            "UNDER REVIEW — Do not continue working until "
+                            "the inspector records approval."
                         )
                         st.rerun()
 
-                   except Exception as exc:
-                       st.error(f"Submission failed: {exc}")
-                       st.info("If a photo uploaded before the error, it may remain in private Storage. We can clean up incomplete uploads after verifying the setup.")
+                    except Exception as exc:
+                        st.error(f"Submission failed: {exc}")
+                        st.info("If a photo uploaded before the error, it may remain in private Storage. We can clean up incomplete uploads after verifying the setup.")
 
 elif page == "Worker status":
     st.subheader("Your inspection status")
