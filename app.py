@@ -62,7 +62,7 @@ def analyze_image(image_bytes: bytes, confidence: float = 0.25):
         result = model.predict(
             frame,
             imgsz=800,
-            conf=max(confidence, 0.50),
+            conf=0.70,
             verbose=False,
         )[0]
 
