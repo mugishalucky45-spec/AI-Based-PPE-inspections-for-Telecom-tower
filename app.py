@@ -181,7 +181,7 @@ def get_user_role(client):
     try:
         # First, check whether the user is registered as an inspector.
         response = (
-            client.table("inspector_role")
+            client.table("inspector_roles")
             .select("user_id")
             .eq("user_id", user_id)
             .limit(1)
