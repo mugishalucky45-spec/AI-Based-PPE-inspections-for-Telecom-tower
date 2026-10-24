@@ -1053,7 +1053,7 @@ def towersafe_submit_inspection(
         "site_id": site_id.strip(),
         "site_name": site_name.strip(),
         "worker_user_id": str(user_id),
-        "status": "pending",
+        "status": "UNDER REVIEW",
         "front_photo_path": uploaded_paths["front"],
         "back_photo_path": uploaded_paths["back"],
         "ppe_results": ppe_results,
