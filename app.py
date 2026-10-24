@@ -1241,7 +1241,7 @@ def towersafe_inspection_history(client):
             client.table("inspections")
             .select("*")
             .eq("worker_user_id", str(user_id))
-            .order("created_at", desc=True)
+            .order("submitted_at", desc=True)
             .limit(100)
             .execute()
         )
@@ -1260,7 +1260,7 @@ def towersafe_inspection_history(client):
                 "Worker": record.get("technician_name"),
                 "Site": record.get("site_name"),
                 "Status": record.get("status"),
-                "Created": record.get("created_at"),
+                "Created": record.get("submitted_at"),
             })
 
         st.dataframe(
