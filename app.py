@@ -725,3 +725,869 @@ def current_timestamp():
 # ============================================================
 # END OF PART 1
 # ============================================================
+# ============================================================
+# PART 2: TOWERSAFE PPE INSPECTION APPLICATION
+# ============================================================
+
+import json
+import traceback
+
+
+# ------------------------------------------------------------
+# AUTHENTICATION
+# ------------------------------------------------------------
+
+def towersafe_logout():
+    """Log out the current user."""
+    client = st.session_state.get("supabase_client")
+
+    try:
+        if client is not None:
+            client.auth.sign_out()
+    except Exception:
+        pass
+
+    for key in [
+        "user",
+        "active_inspection",
+        "front_capture",
+        "back_capture",
+        "left_capture",
+        "right_capture",
+        "access_token",
+        "refresh_token",
+    ]:
+        st.session_state.pop(key, None)
+
+    st.rerun()
+
+
+def towersafe_authentication_page(client):
+    """Display the registration and login page."""
+
+    st.title("TowerSafe AI")
+    st.subheader("Telecom Tower PPE Inspection System")
+
+    st.write(
+        "Register as a worker or log in to access your dashboard."
+    )
+
+    login_tab, register_tab = st.tabs(
+        ["Login", "Register as a Worker"]
+    )
+
+    with login_tab:
+        st.markdown("### Welcome back")
+
+        login_email = st.text_input(
+            "Email address",
+            key="towersafe_login_email",
+        )
+
+        login_password = st.text_input(
+            "Password",
+            type="password",
+            key="towersafe_login_password",
+        )
+
+        if st.button(
+            "Log in",
+            type="primary",
+            use_container_width=True,
+        ):
+            if not login_email.strip() or not login_password:
+                st.error("Enter your email and password.")
+            else:
+                try:
+                    response = client.auth.sign_in_with_password(
+                        {
+                            "email": login_email.strip(),
+                            "password": login_password,
+                        }
+                    )
+
+                    user = response.user
+                    session = response.session
+
+                    if user is None:
+                        st.error("Login failed. Please try again.")
+                    else:
+                        st.session_state.user = user
+
+                        if session is not None:
+                            st.session_state.access_token = (
+                                session.access_token
+                            )
+                            st.session_state.refresh_token = (
+                                session.refresh_token
+                            )
+
+                        st.success("Login successful!")
+                        st.rerun()
+
+                except Exception as exc:
+                    st.error(
+                        "Login failed. Check your email and password."
+                    )
+                    st.caption(str(exc))
+
+    with register_tab:
+        st.markdown("### Create a worker account")
+
+        register_name = st.text_input(
+            "Full name",
+            key="towersafe_register_name",
+        )
+
+        register_email = st.text_input(
+            "Email address",
+            key="towersafe_register_email",
+        )
+
+        register_password = st.text_input(
+            "Create password",
+            type="password",
+            key="towersafe_register_password",
+        )
+
+        confirm_password = st.text_input(
+            "Confirm password",
+            type="password",
+            key="towersafe_confirm_password",
+        )
+
+        st.info(
+            "New accounts are for workers. Inspector and admin "
+            "access must be assigned separately."
+        )
+
+        if st.button(
+            "Register",
+            type="primary",
+            use_container_width=True,
+        ):
+            if not register_name.strip():
+                st.error("Enter your full name.")
+
+            elif not register_email.strip():
+                st.error("Enter your email address.")
+
+            elif len(register_password) < 6:
+                st.error(
+                    "Your password must contain at least 6 characters."
+                )
+
+            elif register_password != confirm_password:
+                st.error("The passwords do not match.")
+
+            else:
+                try:
+                    response = client.auth.sign_up(
+                        {
+                            "email": register_email.strip(),
+                            "password": register_password,
+                            "options": {
+                                "data": {
+                                    "full_name": register_name.strip()
+                                }
+                            },
+                        }
+                    )
+
+                    if response.user is None:
+                        st.error(
+                            "Registration failed. Please try again."
+                        )
+
+                    elif response.session is None:
+                        st.success(
+                            "Account created. Check your email "
+                            "to confirm your account, then log in."
+                        )
+
+                    else:
+                        st.session_state.user = response.user
+                        st.session_state.access_token = (
+                            response.session.access_token
+                        )
+                        st.session_state.refresh_token = (
+                            response.session.refresh_token
+                        )
+
+                        st.success("Your worker account was created.")
+                        st.rerun()
+
+                except Exception as exc:
+                    st.error("Registration failed.")
+                    st.caption(str(exc))
+
+
+# ------------------------------------------------------------
+# RESTORE AUTHENTICATION AFTER STREAMLIT RERUNS
+# ------------------------------------------------------------
+
+def towersafe_restore_session(client):
+    """Restore the saved Supabase authentication session."""
+
+    access_token = st.session_state.get("access_token")
+    refresh_token = st.session_state.get("refresh_token")
+
+    if access_token and refresh_token:
+        try:
+            response = client.auth.set_session(
+                access_token,
+                refresh_token,
+            )
+
+            if response.user is not None:
+                st.session_state.user = response.user
+                return response.user
+
+        except Exception:
+            st.session_state.pop("user", None)
+            st.session_state.pop("access_token", None)
+            st.session_state.pop("refresh_token", None)
+
+    user = st.session_state.get("user")
+
+    if user is not None:
+        return user
+
+    return None
+
+
+# ------------------------------------------------------------
+# WORKER INSPECTION SUBMISSION
+# ------------------------------------------------------------
+
+def towersafe_submit_inspection(
+    client,
+    technician_name,
+    site_id,
+    site_name,
+    photo_bytes,
+):
+    """
+    Analyze four photos, upload the photos, and save an inspection.
+
+    Front and back photo paths use their own database columns.
+    Left and right photo paths and analysis details are stored
+    in the JSON-compatible ppe_results column.
+    """
+
+    inspection_code = (
+        "TS-" + datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+        + "-" + uuid.uuid4().hex[:6].upper()
+    )
+
+    analyses = {}
+    uploaded_paths = {}
+
+    # Analyze each view.
+    for view_name in ["front", "back", "left", "right"]:
+        result = analyze_image(
+            photo_bytes[view_name],
+            confidence=PPE_CONFIDENCE,
+        )
+
+        if not result.get("success"):
+            raise ValueError(
+                f"AI analysis failed for the {view_name} view: "
+                f"{result.get('error', 'Unknown error')}"
+            )
+
+        analyses[view_name] = analysis_for_database(result)
+
+    # Upload all four photos to private Supabase storage.
+    for view_name in ["front", "back", "left", "right"]:
+        uploaded_paths[view_name] = upload_private_photo(
+            client,
+            photo_bytes[view_name],
+            inspection_code,
+            view_name,
+        )
+
+    # Combine detections from the four views.
+    detected_classes = set()
+
+    for result in analyses.values():
+        counts = result.get("counts", {})
+
+        for class_name, count in counts.items():
+            if count and int(count) > 0:
+                detected_classes.add(class_name)
+
+    missing_classes = [
+        class_name
+        for class_name in PPE_CLASSES
+        if class_name not in detected_classes
+    ]
+
+    if not missing_classes:
+        overall_ppe_status = "All required PPE classes detected"
+    elif len(missing_classes) == len(PPE_CLASSES):
+        overall_ppe_status = "No required PPE detected"
+    else:
+        overall_ppe_status = "Some required PPE classes not detected"
+
+    user_id = get_user_id()
+
+    if not user_id:
+        raise ValueError(
+            "Your user ID could not be identified. Please log in again."
+        )
+
+    # Keep the four-view details in ppe_results.
+    ppe_results = {
+        "overall_status": overall_ppe_status,
+        "required_ppe": PPE_CLASSES,
+        "missing_items": missing_classes,
+        "photo_paths": uploaded_paths,
+        "views": analyses,
+    }
+
+    # Insert only the confirmed database columns.
+    inspection_row = {
+        "inspection_code": inspection_code,
+        "technician_name": technician_name.strip(),
+        "site_id": site_id.strip(),
+        "site_name": site_name.strip(),
+        "worker_user_id": str(user_id),
+        "status": "pending",
+        "front_photo_path": uploaded_paths["front"],
+        "back_photo_path": uploaded_paths["back"],
+        "ppe_results": ppe_results,
+    }
+
+    response = (
+        client.table("inspections")
+        .insert(inspection_row)
+        .execute()
+    )
+
+    if not response.data:
+        raise RuntimeError(
+            "Supabase did not return the saved inspection record."
+        )
+
+    return response.data[0]
+
+
+# ------------------------------------------------------------
+# WORKER DASHBOARD
+# ------------------------------------------------------------
+
+def towersafe_worker_dashboard(client):
+
+    st.title("Worker Dashboard")
+    st.write(
+        "Capture four views of the worker for AI-assisted "
+        "personal protective equipment inspection."
+    )
+
+    st.warning(
+        "Safety reminder: AI results support inspection. "
+        "They do not replace a qualified safety inspection."
+    )
+
+    user = st.session_state.get("user")
+    user_metadata = getattr(user, "user_metadata", None) or {}
+
+    default_name = user_metadata.get("full_name", "")
+
+    with st.form("towersafe_inspection_details"):
+        st.subheader("1. Inspection details")
+
+        technician_name = st.text_input(
+            "Worker's full name",
+            value=default_name,
+        )
+
+        site_id = st.text_input("Site ID")
+
+        site_name = st.text_input(
+            "Telecom tower site name or location"
+        )
+
+        st.subheader("2. Capture the four views")
+
+        st.caption(
+            "Take clear photos with the worker fully visible. "
+            "Use the same worker for all four views."
+        )
+
+        front_col, back_col = st.columns(2)
+
+        with front_col:
+            st.markdown("#### Front view")
+            front = st.camera_input(
+                "Take front-view photo",
+                key="front_camera",
+            )
+
+        with back_col:
+            st.markdown("#### Back view")
+            back = st.camera_input(
+                "Take back-view photo",
+                key="back_camera",
+            )
+
+        left_col, right_col = st.columns(2)
+
+        with left_col:
+            st.markdown("#### Left-side view")
+            left = st.camera_input(
+                "Take left-side photo",
+                key="left_camera",
+            )
+
+        with right_col:
+            st.markdown("#### Right-side view")
+            right = st.camera_input(
+                "Take right-side photo",
+                key="right_camera",
+            )
+
+        submitted = st.form_submit_button(
+            "Submit evidence to inspector",
+            type="primary",
+            use_container_width=True,
+        )
+
+    if submitted:
+
+        if not technician_name.strip():
+            st.error("Enter the worker's name.")
+
+        elif not site_id.strip():
+            st.error("Enter the site ID.")
+
+        elif not site_name.strip():
+            st.error("Enter the tower site name or location.")
+
+        elif any(
+            photo is None
+            for photo in [front, back, left, right]
+        ):
+            st.error(
+                "Please capture all four views: "
+                "front, back, left, and right."
+            )
+
+        else:
+            photo_bytes = {
+                "front": front.getvalue(),
+                "back": back.getvalue(),
+                "left": left.getvalue(),
+                "right": right.getvalue(),
+            }
+
+            try:
+                with st.spinner(
+                    "Analyzing PPE and submitting evidence..."
+                ):
+                    saved_inspection = towersafe_submit_inspection(
+                        client=client,
+                        technician_name=technician_name,
+                        site_id=site_id,
+                        site_name=site_name,
+                        photo_bytes=photo_bytes,
+                    )
+
+                st.success(
+                    "Inspection submitted successfully!"
+                )
+
+                st.write(
+                    "Inspection code:",
+                    saved_inspection["inspection_code"],
+                )
+
+                st.info(
+                    "Your evidence has been submitted for inspector review."
+                )
+
+            except Exception as exc:
+                st.error("The inspection could not be submitted.")
+                st.write(str(exc))
+
+                st.caption(
+                    "If the error mentions storage, check that the "
+                    "inspection-photos bucket exists and that the "
+                    "signed-in worker has permission to upload."
+                )
+
+
+# ------------------------------------------------------------
+# INSPECTION HISTORY
+# ------------------------------------------------------------
+
+def towersafe_inspection_history(client):
+
+    st.title("Inspection History")
+
+    user_id = get_user_id()
+
+    if not user_id:
+        st.error("Please log in again.")
+        return
+
+    try:
+        response = (
+            client.table("inspections")
+            .select("*")
+            .eq("worker_user_id", str(user_id))
+            .order("created_at", desc=True)
+            .limit(100)
+            .execute()
+        )
+
+        records = response.data or []
+
+        if not records:
+            st.info("You have not submitted any inspections yet.")
+            return
+
+        display_records = []
+
+        for record in records:
+            display_records.append({
+                "Inspection code": record.get("inspection_code"),
+                "Worker": record.get("technician_name"),
+                "Site": record.get("site_name"),
+                "Status": record.get("status"),
+                "Created": record.get("created_at"),
+            })
+
+        st.dataframe(
+            pd.DataFrame(display_records),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        selected_code = st.selectbox(
+            "Select an inspection to view its details",
+            options=[
+                record.get("inspection_code")
+                for record in records
+            ],
+        )
+
+        selected_record = next(
+            (
+                record
+                for record in records
+                if record.get("inspection_code") == selected_code
+            ),
+            None,
+        )
+
+        if selected_record:
+            st.json(selected_record.get("ppe_results") or {})
+
+    except Exception as exc:
+        st.error("Could not load inspection history.")
+        st.caption(str(exc))
+
+
+# ------------------------------------------------------------
+# INSPECTOR DASHBOARD
+# ------------------------------------------------------------
+
+def towersafe_inspector_dashboard(client):
+
+    st.title("Inspector Dashboard")
+
+    st.write(
+        "Review submitted evidence and record your decision."
+    )
+
+    try:
+        response = (
+            client.table("inspections")
+            .select("*")
+            .order("created_at", desc=True)
+            .limit(200)
+            .execute()
+        )
+
+        records = response.data or []
+
+    except Exception as exc:
+        st.error("Could not load inspections.")
+        st.caption(str(exc))
+        return
+
+    if not records:
+        st.info("There are no inspections to display.")
+        return
+
+    pending = [
+        record for record in records
+        if str(record.get("status", "")).lower() == "pending"
+    ]
+
+    st.metric("Total inspections loaded", len(records))
+    st.metric("Pending review", len(pending))
+
+    st.subheader("Inspection records")
+
+    summary = []
+
+    for record in records:
+        summary.append({
+            "Inspection code": record.get("inspection_code"),
+            "Worker": record.get("technician_name"),
+            "Site": record.get("site_name"),
+            "Status": record.get("status"),
+            "Created": record.get("created_at"),
+        })
+
+    st.dataframe(
+        pd.DataFrame(summary),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    st.subheader("Review evidence")
+
+    codes = [
+        record.get("inspection_code")
+        for record in records
+        if record.get("inspection_code")
+    ]
+
+    selected_code = st.selectbox(
+        "Choose an inspection",
+        options=codes,
+    )
+
+    record = next(
+        (
+            item for item in records
+            if item.get("inspection_code") == selected_code
+        ),
+        None,
+    )
+
+    if record is None:
+        return
+
+    st.write("**Worker:**", record.get("technician_name"))
+    st.write("**Site:**", record.get("site_name"))
+    st.write("**Current status:**", record.get("status"))
+
+    st.markdown("### AI PPE analysis")
+
+    ppe_results = record.get("ppe_results") or {}
+
+    if isinstance(ppe_results, str):
+        try:
+            ppe_results = json.loads(ppe_results)
+        except Exception:
+            ppe_results = {}
+
+    st.json(ppe_results)
+
+    st.markdown("### Captured photographs")
+
+    photo_paths = ppe_results.get("photo_paths", {})
+
+    if not isinstance(photo_paths, dict):
+        photo_paths = {}
+
+    photo_paths.setdefault(
+        "front",
+        record.get("front_photo_path"),
+    )
+
+    photo_paths.setdefault(
+        "back",
+        record.get("back_photo_path"),
+    )
+
+    photo_columns = st.columns(2)
+
+    for index, view_name in enumerate(
+        ["front", "back", "left", "right"]
+    ):
+        storage_path = photo_paths.get(view_name)
+
+        with photo_columns[index % 2]:
+            st.markdown(f"#### {view_name.title()} view")
+
+            if storage_path:
+                try:
+                    show_private_photo(
+                        client,
+                        storage_path,
+                        f"{view_name.title()} view",
+                    )
+                except Exception as exc:
+                    st.warning(
+                        f"Could not display this photograph: {exc}"
+                    )
+            else:
+                st.info("No photograph path is available.")
+
+    st.markdown("### Inspector decision")
+
+    current_status = str(record.get("status", "")).lower()
+
+    if current_status == "pending":
+
+        decision = st.radio(
+            "Decision",
+            ["Approve", "Reject"],
+            horizontal=True,
+            key=f"decision_{selected_code}",
+        )
+
+        if st.button(
+            "Save inspector decision",
+            type="primary",
+            key=f"save_decision_{selected_code}",
+        ):
+            new_status = (
+                "approved"
+                if decision == "Approve"
+                else "rejected"
+            )
+
+            try:
+                (
+                    client.table("inspections")
+                    .update({"status": new_status})
+                    .eq("inspection_code", selected_code)
+                    .execute()
+                )
+
+                st.success(
+                    f"Inspection marked as {new_status}."
+                )
+
+                st.rerun()
+
+            except Exception as exc:
+                st.error("Could not save the inspector decision.")
+                st.caption(str(exc))
+
+    else:
+        st.info(
+            f"This inspection has already been marked "
+            f"'{record.get('status')}'."
+        )
+
+
+# ------------------------------------------------------------
+# MAIN APPLICATION
+# ------------------------------------------------------------
+
+def towersafe_main():
+
+    st.set_page_config(
+        page_title="TowerSafe AI",
+        page_icon="🦺",
+        layout="wide",
+    )
+
+    st.markdown(
+        """
+        <style>
+        .block-container {
+            padding-top: 1.5rem;
+            padding-bottom: 2rem;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Connect to Supabase using the Part 1 helper.
+    try:
+        client = make_client()
+
+    except Exception as exc:
+        st.title("TowerSafe AI")
+        st.error("Could not connect to Supabase.")
+        st.write(str(exc))
+        st.stop()
+
+    if client is None:
+        st.title("TowerSafe AI")
+        st.error(
+            "Supabase is not configured. Check SUPABASE_URL "
+            "and SUPABASE_KEY in Streamlit secrets."
+        )
+        st.stop()
+
+    user = towersafe_restore_session(client)
+
+    if user is None:
+        towersafe_authentication_page(client)
+        return
+
+    try:
+        role = get_user_role(client)
+    except Exception:
+        role = "worker"
+
+    role = str(role or "worker").lower()
+
+    st.sidebar.title("🦺 TowerSafe AI")
+
+    st.sidebar.write(
+        getattr(user, "email", "Signed-in user")
+    )
+
+    st.sidebar.write(f"Account role: **{role}**")
+
+    if st.sidebar.button(
+        "Log out",
+        use_container_width=True,
+    ):
+        towersafe_logout()
+
+    if role in ["inspector", "admin"]:
+
+        page = st.sidebar.radio(
+            "Navigation",
+            [
+                "Inspector Dashboard",
+                "Worker Dashboard",
+                "Inspection History",
+            ],
+        )
+
+    else:
+        page = st.sidebar.radio(
+            "Navigation",
+            [
+                "Worker Dashboard",
+                "Inspection History",
+            ],
+        )
+
+    if page == "Worker Dashboard":
+        towersafe_worker_dashboard(client)
+
+    elif page == "Inspection History":
+        towersafe_inspection_history(client)
+
+    elif page == "Inspector Dashboard":
+        if role in ["inspector", "admin"]:
+            towersafe_inspector_dashboard(client)
+        else:
+            st.error("You are not authorized to access this page.")
+
+
+# Start the Streamlit application.
+towersafe_main()
+
+
+
+
+
+
+
+
