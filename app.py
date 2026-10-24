@@ -171,18 +171,7 @@ def get_user_email():
 
 
 def get_user_role(client):
-    """
-    Get the current user's role from the profiles table.
-
-    Expected columns:
-        id
-        role
-
-    Example roles:
-        worker
-        inspector
-        admin
-    """
+    """Identify whether the signed-in user is an inspector or worker."""
 
     user_id = get_user_id()
 
@@ -190,6 +179,19 @@ def get_user_role(client):
         return "worker"
 
     try:
+        # First, check whether the user is registered as an inspector.
+        response = (
+            client.table("inspector_role")
+            .select("user_id")
+            .eq("user_id", user_id)
+            .limit(1)
+            .execute()
+        )
+
+        if response.data:
+            return "inspector"
+
+        # If not, check the user's role in the profiles table.
         response = (
             client.table("profiles")
             .select("role")
@@ -198,20 +200,22 @@ def get_user_role(client):
             .execute()
         )
 
-        rows = response.data or []
+        if response.data:
+            role = str(
+                response.data[0].get("role", "worker")
+            ).strip().lower()
 
-        if rows:
-            role = str(rows[0].get("role", "worker")).lower()
+            if role in {"inspector", "admin", "administrator"}:
+                return "inspector"
 
-            if role in {"worker", "inspector", "admin"}:
-                return role
+            if role == "worker":
+                return "worker"
 
-    except Exception:
-        pass
+        return "worker"
 
-    return "worker"
-
-
+    except Exception as exc:
+        st.error(f"Could not determine your account role: {exc}")
+        return "worker"
 # ============================================================
 # 5. FETCH RWANDA PROVINCE, DISTRICT, AND SECTOR DATA
 # ============================================================
