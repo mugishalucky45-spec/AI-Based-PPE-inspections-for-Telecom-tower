@@ -596,7 +596,7 @@ def fetch_inspections(client, limit=200):
             client.table("inspections")
             .select("*")
             .order(
-                "created_at",
+                "submitted_at",
                 desc=True,
             )
             .limit(limit)
@@ -631,7 +631,7 @@ def fetch_notifications(client):
             .select("*")
             .eq("user_id", user_id)
             .order(
-                "created_at",
+                "submitted_at",
                 desc=True,
             )
             .limit(100)
@@ -1310,7 +1310,7 @@ def towersafe_inspector_dashboard(client):
         response = (
             client.table("inspections")
             .select("*")
-            .order("created_at", desc=True)
+            .order("submitted_at", desc=True)
             .limit(200)
             .execute()
         )
@@ -1344,7 +1344,7 @@ def towersafe_inspector_dashboard(client):
             "Worker": record.get("technician_name"),
             "Site": record.get("site_name"),
             "Status": record.get("status"),
-            "Created": record.get("created_at"),
+            "Created": record.get("submitted_at"),
         })
 
     st.dataframe(
