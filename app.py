@@ -135,6 +135,33 @@ def make_client() -> Client:
         st.session_state.supabase_client = create_client(url, anon_key)
     return st.session_state.supabase_client
 
+@st.cache_data(ttl=300)
+def fetch_rwanda_locations(_client):
+    response = (
+        _client.table("rwanda_sectors")
+        .select("province,district,sector")
+        .order("province")
+        .order("district")
+        .order("sector")
+        .execute()
+    )
+
+    df = pd.DataFrame(response.data or [])
+
+    if df.empty:
+        return df
+
+    for column in ["province", "district", "sector"]:
+        df[column] = df[column].astype(str).str.strip()
+
+    df = df.drop_duplicates()
+
+    return df[
+        (df["province"] != "")
+        & (df["district"] != "")
+        & (df["sector"] != "")
+    ]
+    
 def get_user_id(user):
     if not user:
         return None
