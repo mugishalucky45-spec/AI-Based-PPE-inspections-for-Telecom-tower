@@ -671,7 +671,7 @@ elif page == "Worker status":
             st.write(f"**Inspector:** {rec.get('inspector_name') or 'Not reviewed yet'}")
             st.write(f"**Comments:** {rec.get('inspector_comments') or 'No comments yet'}")
 
-    elif page == "Inspector review":
+elif page == "Inspector review":
     if not is_inspector:
         st.error("This account has not been authorized as an inspector.")
         st.stop()
