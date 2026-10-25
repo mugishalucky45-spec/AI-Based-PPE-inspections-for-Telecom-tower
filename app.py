@@ -394,35 +394,77 @@ if is_inspector:
 
 if page == "Worker inspection":
     st.subheader("1. Worker and site details")
+
+    # Load registered tower sites from Supabase
+    try:
+        response = (
+            client.table("tower_sites")
+            .select("site_id, site_name, province, district, sector, activity")
+            .order("site_id")
+            .execute()
+        )
+        sites = response.data or []
+    except Exception as exc:
+        st.error(f"Could not load registered tower sites: {exc}")
+        st.stop()
+
+    if not sites:
+        st.warning("No tower sites are registered yet.")
+        st.stop()
+
+    # Create readable dropdown labels
+    site_options = {
+        f"{site['site_id']} — {site['site_name']} ({site['activity']})": site
+        for site in sites
+    }
+
     with st.form("worker_details"):
-        col1, col2 = st.columns(2)
-        with col1:
-            technician = st.text_input("Technician name", placeholder="Enter full name")
-            site_id = st.text_input("Site ID", placeholder="Example: K001").strip().upper()
-        with col2:
-            site_name = st.text_input("Site name", placeholder="Enter tower/site name")
-        start_clicked = st.form_submit_button("Start inspection", type="primary", use_container_width=True)
+        technician = st.text_input(
+            "Technician name",
+            placeholder="Enter full name",
+        )
+
+        selected_label = st.selectbox(
+            "Select tower site",
+            list(site_options.keys()),
+        )
+
+        start_clicked = st.form_submit_button(
+            "Start inspection",
+            type="primary",
+            use_container_width=True,
+        )
+
     if start_clicked:
-        region = next((r for r, (prefix, low, high) in REGION_RANGES.items()
-                       if re.fullmatch(prefix + r"\d{3}", site_id) and low <= int(site_id[1:]) <= high), None)
+        selected_site = site_options[selected_label]
+
         if not technician.strip():
             st.error("Please enter the technician name.")
-        elif not site_name.strip():
-            st.error("Please enter the site name.")
-        elif region is None:
-            st.error("Invalid site ID. Please enter a valid site ID.")
         else:
             st.session_state.active_inspection = {
-                "inspection_code": "TS-" + datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + uuid.uuid4().hex[:5].upper(),
-                "technician": technician.strip(), "region": region,
-                "site_id": site_id, "site_name": site_name.strip(),
+                "inspection_code": (
+                    "TS-"
+                    + datetime.now().strftime("%Y%m%d-%H%M%S")
+                    + "-"
+                    + uuid.uuid4().hex[:5].upper()
+                ),
+                "technician": technician.strip(),
+                "region": selected_site["province"],
+                "site_id": selected_site["site_id"],
+                "site_name": selected_site["site_name"],
             }
-            st.session_state.pop("front_capture", None)
-            st.session_state.pop("back_capture", None)
-            st.success("Details accepted. Capture the front and back views below.")
-    active = st.session_state.get("active_inspection")
 
-    if active:
+            for key in [
+                "front_capture",
+                "back_capture",
+                "left_capture",
+                "right_capture",
+            ]:
+                st.session_state.pop(key, None)
+
+            st.success("Details accepted. Capture the required photos below.")
+
+        active = st.session_state.get("active_inspection")
         st.divider()
         st.subheader("2. Capture live camera evidence")
 
