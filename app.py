@@ -671,10 +671,82 @@ elif page == "Worker status":
             st.write(f"**Inspector:** {rec.get('inspector_name') or 'Not reviewed yet'}")
             st.write(f"**Comments:** {rec.get('inspector_comments') or 'No comments yet'}")
 
-elif page == "Inspector review":
+    elif page == "Inspector review":
     if not is_inspector:
         st.error("This account has not been authorized as an inspector.")
         st.stop()
+    # Device Monitoring Site selector
+    st.divider()
+    st.subheader("Device Monitoring Site")
+
+    try:
+        sites_response = (
+            client.table("tower_sites")
+            .select("site_id, site_name")
+            .order("site_id")
+            .execute()
+        )
+        device_sites = sites_response.data or []
+
+        if not device_sites:
+            st.warning("No tower sites are available.")
+        else:
+            site_options = {
+                f"{site['site_id']} — {site['site_name']}": site
+                for site in device_sites
+            }
+
+            current_setting = (
+                client.table("device_monitoring_settings")
+                .select("site_id, site_name")
+                .eq("id", 1)
+                .execute()
+            )
+
+            saved_site = (
+                current_setting.data[0]
+                if current_setting.data
+                else None
+            )
+
+            labels = list(site_options.keys())
+            default_index = 0
+
+            if saved_site:
+                for index, label in enumerate(labels):
+                    if site_options[label]["site_id"] == saved_site["site_id"]:
+                        default_index = index
+                        break
+
+            selected_site_label = st.selectbox(
+                "Choose the tower site for the ESP8266",
+                labels,
+                index=default_index,
+                key="device_monitoring_site",
+            )
+
+            selected_site = site_options[selected_site_label]
+
+            if st.button("Save Device Monitoring Site"):
+                client.table("device_monitoring_settings").upsert(
+                    {
+                        "id": 1,
+                        "site_id": selected_site["site_id"],
+                        "site_name": selected_site["site_name"],
+                        "updated_at": datetime.now(timezone.utc).isoformat(),
+                    },
+                    on_conflict="id",
+                ).execute()
+
+                st.success(
+                    f"Device monitoring site saved: "
+                    f"{selected_site['site_id']} — "
+                    f"{selected_site['site_name']}"
+                )
+                st.rerun()
+
+    except Exception as exc:
+        st.error(f"Could not load or save the monitoring site: {exc}")
     pending = [rec for rec in items if rec.get("status") == "UNDER REVIEW"]
     st.subheader(f"Pending inspections ({len(pending)})")
     if st.button("Refresh pending inspections"):
