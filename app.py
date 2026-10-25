@@ -412,59 +412,74 @@ if page == "Worker inspection":
         st.warning("No tower sites are registered yet.")
         st.stop()
 
-    # Create readable dropdown labels
     site_options = {
         f"{site['site_id']} — {site['site_name']} ({site['activity']})": site
         for site in sites
     }
 
-    with st.form("worker_details"):
-        technician = st.text_input(
-            "Technician name",
-            placeholder="Enter full name",
-        )
+    # Show the details form only when no inspection is active.
+    if not st.session_state.get("active_inspection"):
+        with st.form("worker_details"):
+            technician = st.text_input(
+                "Technician name",
+                placeholder="Enter full name",
+                key="technician_input",
+            )
 
-        selected_label = st.selectbox(
-            "Select tower site",
-            list(site_options.keys()),
-        )
+            selected_label = st.selectbox(
+                "Select tower site",
+                list(site_options.keys()),
+                key="selected_tower_site",
+            )
 
-        start_clicked = st.form_submit_button(
-            "Start inspection",
-            type="primary",
-            use_container_width=True,
-        )
+            start_clicked = st.form_submit_button(
+                "Start inspection",
+                type="primary",
+                use_container_width=True,
+            )
 
-    if start_clicked:
-        selected_site = site_options[selected_label]
+        if start_clicked:
+            selected_site = site_options[selected_label]
 
-        if not technician.strip():
-            st.error("Please enter the technician name.")
-        else:
-            st.session_state.active_inspection = {
-                "inspection_code": (
-                    "TS-"
-                    + datetime.now().strftime("%Y%m%d-%H%M%S")
-                    + "-"
-                    + uuid.uuid4().hex[:5].upper()
-                ),
-                "technician": technician.strip(),
-                "region": selected_site["province"],
-                "site_id": selected_site["site_id"],
-                "site_name": selected_site["site_name"],
-            }
+            if not technician.strip():
+                st.error("Please enter the technician name.")
+            else:
+                st.session_state.active_inspection = {
+                    "inspection_code": (
+                        "TS-"
+                        + datetime.now().strftime("%Y%m%d-%H%M%S")
+                        + "-"
+                        + uuid.uuid4().hex[:5].upper()
+                    ),
+                    "technician": technician.strip(),
+                    "region": selected_site["province"],
+                    "site_id": selected_site["site_id"],
+                    "site_name": selected_site["site_name"],
+                }
 
-            for key in [
-                "front_capture",
-                "back_capture",
-                "left_capture",
-                "right_capture",
-            ]:
-                st.session_state.pop(key, None)
+                # Clear previous photos only when starting a new inspection.
+                for key in [
+                    "front_capture",
+                    "back_capture",
+                    "left_capture",
+                    "right_capture",
+                ]:
+                    st.session_state.pop(key, None)
 
-            st.success("Details accepted. Capture the required photos below.")
+                for key in [
+                    "front_camera",
+                    "back_camera",
+                    "left_camera",
+                    "right_camera",
+                ]:
+                    st.session_state.pop(key, None)
 
-        active = st.session_state.get("active_inspection")
+                st.rerun()
+
+    # Keep the active inspection visible on subsequent reruns.
+    active = st.session_state.get("active_inspection")
+
+    if active:
         st.divider()
         st.subheader("2. Capture live camera evidence")
 
@@ -479,7 +494,7 @@ if page == "Worker inspection":
             "Capture all four views before submitting."
         )
 
-        # First row: Front and Back
+        # Front and Back
         front_col, back_col = st.columns(2)
 
         with front_col:
@@ -500,7 +515,7 @@ if page == "Worker inspection":
             if back is not None:
                 st.session_state.back_capture = back.getvalue()
 
-        # Second row: Left and Right
+        # Left and Right
         left_col, right_col = st.columns(2)
 
         with left_col:
@@ -542,7 +557,6 @@ if page == "Worker inspection":
                     "Please capture all four views: "
                     "front, back, left, and right."
                 )
-
             else:
                 try:
                     inspection_code = active["inspection_code"]
@@ -604,24 +618,29 @@ if page == "Worker inspection":
                         insert_data
                     ).execute()
 
-                    # Clear session state after successful submission
+                    st.success(
+                        f"Evidence submitted. Reference: {inspection_code}"
+                    )
+                    st.warning(
+                        "UNDER REVIEW — Do not continue working until "
+                        "the inspector records approval."
+                    )
+
+                    # Clear the active inspection only after successful submission.
                     for key in [
                         "active_inspection",
                         "front_capture",
                         "back_capture",
                         "left_capture",
                         "right_capture",
+                        "front_camera",
+                        "back_camera",
+                        "left_camera",
+                        "right_camera",
+                        "technician_input",
+                        "selected_tower_site",
                     ]:
                         st.session_state.pop(key, None)
-
-                    st.success(
-                        f"Evidence submitted. Reference: {inspection_code}"
-                    )
-
-                    st.warning(
-                        "UNDER REVIEW — Do not continue working until "
-                        "the inspector records approval."
-                    )
 
                     st.rerun()
 
@@ -632,6 +651,7 @@ if page == "Worker inspection":
                         "in private Storage. We can clean up incomplete uploads "
                         "after verifying the setup."
                     )
+
 elif page == "Worker status":
     st.subheader("Your inspection status")
     st.caption("This list comes from the shared Supabase database and is limited to your signed-in account.")
