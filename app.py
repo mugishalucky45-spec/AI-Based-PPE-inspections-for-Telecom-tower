@@ -815,7 +815,7 @@ elif page == "Inspector review":
                 })
 
         # Front view
-        with col_front:
+         with col_front:
             st.markdown("#### Front view")
             show_private_photo(
                 client, rec.get("front_photo_path"), "Front-view evidence"
@@ -871,26 +871,8 @@ elif page == "Inspector review":
             else:
                 st.info("Left-side PPE analysis unavailable.")
 
-        # Right-side view
-        with col_right:
-            st.markdown("#### Right-side view")
-            show_private_photo(
-                client, rec.get("right_photo_path"), "Right-side evidence"
-            )
-
-            right_table = make_ppe_status_table(
-                ppe.get("right_analysis")
-            )
-            if right_table is not None:
-                st.dataframe(
-                    right_table,
-                    hide_index=True,
-                    use_container_width=True,
-                )
-            else:
-                st.info("Right-side PPE analysis unavailable.")
-        for err in ppe.get("analysis_errors", []):
-                    with col_left:
+# Left-side view
+        with col_left:
             st.markdown("#### Left-side view")
             show_private_photo(
                 client,
@@ -907,12 +889,13 @@ elif page == "Inspector review":
                     hide_index=True,
                     use_container_width=True,
                 )
-            elif not left_analysis:
+            else:
                 st.info(
                     "Left-side PPE analysis unavailable; "
                     "inspect the photo manually."
                 )
 
+        # Right-side view
         with col_right:
             st.markdown("#### Right-side view")
             show_private_photo(
@@ -930,13 +913,21 @@ elif page == "Inspector review":
                     hide_index=True,
                     use_container_width=True,
                 )
-            elif not right_analysis:
+            else:
                 st.info(
                     "Right-side PPE analysis unavailable; "
                     "inspect the photo manually."
                 )
+
+        # Display analysis errors after all four views
+        for err in ppe.get("analysis_errors", []):
             st.warning(err)
-        st.warning("YOLOv8 checks helmet, gloves, safety vest, safety shoes, and harness. It can miss or misclassify PPE. The inspector makes the final decision.")
+
+        st.warning(
+            "YOLOv8 checks helmet, gloves, safety vest, safety shoes, "
+            "and harness. It can miss or misclassify PPE. "
+            "The inspector makes the final decision."
+        )
         with st.form("review_form"):
             reviewer = st.text_input("Inspector name", value=inspector_name_from_role or "")
             decision = st.radio("Decision", ["APPROVED — worker may continue", "REJECTED — worker must correct PPE"], horizontal=True)
