@@ -814,8 +814,8 @@ elif page == "Inspector review":
                     "Status": "Detected" if detected else "Missing",
                 })
 
-        # Front view
-         with col_front:
+            # Front view
+            with col_front:
             st.markdown("#### Front view")
             show_private_photo(
                 client, rec.get("front_photo_path"), "Front-view evidence"
