@@ -718,33 +718,90 @@ elif page == "Inspector review":
                         default_index = index
                         break
 
-            selected_site_label = st.selectbox(
-                "Choose the tower site for the ESP8266",
-                labels,
-                index=default_index,
-                key="device_monitoring_site",
+            # --- ESP8266: Multiple Device Monitoring Sites ---
+st.subheader("ESP8266 Device Monitoring Sites")
+
+# Load available tower sites.
+sites_response = client.table("tower_sites").select(
+    "site_id, site_name"
+).execute()
+
+sites = sites_response.data or []
+
+if not sites:
+    st.warning("No tower sites are available.")
+else:
+    # Create labels for the multiselect.
+    site_options = {
+        f"{site['site_id']} — {site['site_name']}": site
+        for site in sites
+    }
+
+    labels = list(site_options.keys())
+
+    # Load currently selected monitoring sites.
+    saved_response = (
+        client.table("device_monitoring_sites")
+        .select("site_id, site_name")
+        .eq("selected", True)
+        .execute()
+    )
+
+    saved_sites = saved_response.data or []
+    saved_ids = {site["site_id"] for site in saved_sites}
+
+    default_labels = [
+        label
+        for label, site in site_options.items()
+        if site["site_id"] in saved_ids
+    ]
+
+    selected_labels = st.multiselect(
+        "Choose all tower sites for the ESP8266",
+        options=labels,
+        default=default_labels,
+        key="device_monitoring_sites",
+    )
+
+    if st.button("Save Device Monitoring Sites"):
+        selected_sites = [
+            site_options[label]
+            for label in selected_labels
+        ]
+
+        # Mark every existing monitoring site as unselected.
+        (
+            client.table("device_monitoring_sites")
+            .update({
+                "selected": False,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            })
+            .neq("site_id", "")
+            .execute()
+        )
+
+        # Save the newly selected sites.
+        if selected_sites:
+            rows = [
+                {
+                    "site_id": site["site_id"],
+                    "site_name": site["site_name"],
+                    "selected": True,
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }
+                for site in selected_sites
+            ]
+
+            (
+                client.table("device_monitoring_sites")
+                .upsert(rows, on_conflict="site_id")
+                .execute()
             )
 
-            selected_site = site_options[selected_site_label]
-
-            if st.button("Save Device Monitoring Site"):
-                client.table("device_monitoring_settings").upsert(
-                    {
-                        "id": 1,
-                        "site_id": selected_site["site_id"],
-                        "site_name": selected_site["site_name"],
-                        "updated_at": datetime.now(timezone.utc).isoformat(),
-                    },
-                    on_conflict="id",
-                ).execute()
-
-                st.success(
-                    f"Device monitoring site saved: "
-                    f"{selected_site['site_id']} — "
-                    f"{selected_site['site_name']}"
-                )
-                st.rerun()
-
+        st.success(
+            f"Saved {len(selected_sites)} monitoring site(s)."
+        )
+        st.rerun()
     except Exception as exc:
         st.error(f"Could not load or save the monitoring site: {exc}")
     pending = [rec for rec in items if rec.get("status") == "UNDER REVIEW"]
