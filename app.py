@@ -787,8 +787,9 @@ elif page == "Inspector review":
         rec = options[selected_label]
         ppe = rec.get("ppe_results") or {}
         st.write(f"**Technician:** {rec.get('technician_name')} | **Region:** {ppe.get('region', 'Not recorded')} | **Site:** {rec.get('site_id')} — {rec.get('site_name')}")
-        col_front, col_back = st.columns(2)
+col_front, col_back = st.columns(2)
         col_left, col_right = st.columns(2)
+
         def make_ppe_status_table(analysis):
             display_names = {
                 "helmet": "Helmet",
@@ -802,22 +803,24 @@ elif page == "Inspector review":
                 return None
 
             counts = analysis["counts"]
-
             rows = []
+
             for ppe_class in PPE_CLASSES:
                 detected = counts.get(ppe_class, 0) > 0
-
                 rows.append({
                     "PPE Item": display_names.get(
-                        ppe_class, ppe_class.replace("_", " ").title()
+                        ppe_class,
+                        ppe_class.replace("_", " ").title(),
                     ),
                     "Status": "Detected" if detected else "Missing",
                 })
 
-            # Front view
-            with col_front:
-                st.markdown("#### Front view")
-                show_private_photo(
+            return pd.DataFrame(rows)
+
+        # Front view
+        with col_front:
+            st.markdown("#### Front view")
+            show_private_photo(
                 client, rec.get("front_photo_path"), "Front-view evidence"
             )
 
@@ -871,42 +874,16 @@ elif page == "Inspector review":
             else:
                 st.info("Left-side PPE analysis unavailable.")
 
-# Left-side view
-        with col_left:
-            st.markdown("#### Left-side view")
-            show_private_photo(
-                client,
-                rec.get("left_photo_path"),
-                "Left-side evidence",
-            )
-
-            left_analysis = ppe.get("left_analysis")
-            left_table = make_ppe_status_table(left_analysis)
-
-            if left_table is not None:
-                st.dataframe(
-                    left_table,
-                    hide_index=True,
-                    use_container_width=True,
-                )
-            else:
-                st.info(
-                    "Left-side PPE analysis unavailable; "
-                    "inspect the photo manually."
-                )
-
         # Right-side view
         with col_right:
             st.markdown("#### Right-side view")
             show_private_photo(
-                client,
-                rec.get("right_photo_path"),
-                "Right-side evidence",
+                client, rec.get("right_photo_path"), "Right-side evidence"
             )
 
-            right_analysis = ppe.get("right_analysis")
-            right_table = make_ppe_status_table(right_analysis)
-
+            right_table = make_ppe_status_table(
+                ppe.get("right_analysis")
+            )
             if right_table is not None:
                 st.dataframe(
                     right_table,
@@ -914,12 +891,9 @@ elif page == "Inspector review":
                     use_container_width=True,
                 )
             else:
-                st.info(
-                    "Right-side PPE analysis unavailable; "
-                    "inspect the photo manually."
-                )
+                st.info("Right-side PPE analysis unavailable.")
 
-        # Display analysis errors after all four views
+        # Display analysis errors
         for err in ppe.get("analysis_errors", []):
             st.warning(err)
 
