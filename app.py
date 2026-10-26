@@ -814,47 +814,81 @@ elif page == "Inspector review":
                     "Status": "Detected" if detected else "Missing",
                 })
 
-            return pd.DataFrame(rows)
-
+        # Front view
         with col_front:
             st.markdown("#### Front view")
             show_private_photo(
                 client, rec.get("front_photo_path"), "Front-view evidence"
             )
 
-            front_analysis = ppe.get("front_analysis")
-            front_table = make_ppe_status_table(front_analysis)
-
+            front_table = make_ppe_status_table(
+                ppe.get("front_analysis")
+            )
             if front_table is not None:
                 st.dataframe(
                     front_table,
                     hide_index=True,
                     use_container_width=True,
                 )
-            elif front_analysis:
-                st.warning("PPE analysis is unavailable. Inspect the photo manually.")
             else:
-                st.info("Model analysis unavailable; inspect the photo manually.")
+                st.info("Front-view PPE analysis unavailable.")
 
+        # Back view
         with col_back:
             st.markdown("#### Back view")
             show_private_photo(
                 client, rec.get("back_photo_path"), "Back-view evidence"
             )
 
-            back_analysis = ppe.get("back_analysis")
-            back_table = make_ppe_status_table(back_analysis)
-
+            back_table = make_ppe_status_table(
+                ppe.get("back_analysis")
+            )
             if back_table is not None:
                 st.dataframe(
                     back_table,
                     hide_index=True,
                     use_container_width=True,
                 )
-            elif back_analysis:
-                st.warning("PPE analysis is unavailable. Inspect the photo manually.")
             else:
-                st.info("Model analysis unavailable; inspect the photo manually.")
+                st.info("Back-view PPE analysis unavailable.")
+
+        # Left-side view
+        with col_left:
+            st.markdown("#### Left-side view")
+            show_private_photo(
+                client, rec.get("left_photo_path"), "Left-side evidence"
+            )
+
+            left_table = make_ppe_status_table(
+                ppe.get("left_analysis")
+            )
+            if left_table is not None:
+                st.dataframe(
+                    left_table,
+                    hide_index=True,
+                    use_container_width=True,
+                )
+            else:
+                st.info("Left-side PPE analysis unavailable.")
+
+        # Right-side view
+        with col_right:
+            st.markdown("#### Right-side view")
+            show_private_photo(
+                client, rec.get("right_photo_path"), "Right-side evidence"
+            )
+
+            right_table = make_ppe_status_table(
+                ppe.get("right_analysis")
+            )
+            if right_table is not None:
+                st.dataframe(
+                    right_table,
+                    hide_index=True,
+                    use_container_width=True,
+                )
+            else:
+                st.info("Right-side PPE analysis unavailable.")
         for err in ppe.get("analysis_errors", []):
                     with col_left:
             st.markdown("#### Left-side view")
