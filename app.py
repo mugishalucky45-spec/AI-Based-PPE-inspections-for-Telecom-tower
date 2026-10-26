@@ -611,6 +611,8 @@ if page == "Worker inspection":
                         "status": "UNDER REVIEW",
                         "front_photo_path": front_path,
                         "back_photo_path": back_path,
+                        "left_photo_path": left_path,
+                        "right_photo_path": right_path,
                         "ppe_results": ppe_results,
                     }
 
