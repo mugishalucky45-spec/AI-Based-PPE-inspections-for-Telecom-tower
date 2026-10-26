@@ -816,8 +816,8 @@ elif page == "Inspector review":
 
             # Front view
             with col_front:
-            st.markdown("#### Front view")
-            show_private_photo(
+                st.markdown("#### Front view")
+                show_private_photo(
                 client, rec.get("front_photo_path"), "Front-view evidence"
             )
 
