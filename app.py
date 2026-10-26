@@ -788,6 +788,7 @@ elif page == "Inspector review":
         ppe = rec.get("ppe_results") or {}
         st.write(f"**Technician:** {rec.get('technician_name')} | **Region:** {ppe.get('region', 'Not recorded')} | **Site:** {rec.get('site_id')} — {rec.get('site_name')}")
         col_front, col_back = st.columns(2)
+        col_left, col_right = st.columns(2)
         def make_ppe_status_table(analysis):
             display_names = {
                 "helmet": "Helmet",
@@ -855,6 +856,51 @@ elif page == "Inspector review":
             else:
                 st.info("Model analysis unavailable; inspect the photo manually.")
         for err in ppe.get("analysis_errors", []):
+                    with col_left:
+            st.markdown("#### Left-side view")
+            show_private_photo(
+                client,
+                rec.get("left_photo_path"),
+                "Left-side evidence",
+            )
+
+            left_analysis = ppe.get("left_analysis")
+            left_table = make_ppe_status_table(left_analysis)
+
+            if left_table is not None:
+                st.dataframe(
+                    left_table,
+                    hide_index=True,
+                    use_container_width=True,
+                )
+            elif not left_analysis:
+                st.info(
+                    "Left-side PPE analysis unavailable; "
+                    "inspect the photo manually."
+                )
+
+        with col_right:
+            st.markdown("#### Right-side view")
+            show_private_photo(
+                client,
+                rec.get("right_photo_path"),
+                "Right-side evidence",
+            )
+
+            right_analysis = ppe.get("right_analysis")
+            right_table = make_ppe_status_table(right_analysis)
+
+            if right_table is not None:
+                st.dataframe(
+                    right_table,
+                    hide_index=True,
+                    use_container_width=True,
+                )
+            elif not right_analysis:
+                st.info(
+                    "Right-side PPE analysis unavailable; "
+                    "inspect the photo manually."
+                )
             st.warning(err)
         st.warning("YOLOv8 checks helmet, gloves, safety vest, safety shoes, and harness. It can miss or misclassify PPE. The inspector makes the final decision.")
         with st.form("review_form"):
