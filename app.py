@@ -950,17 +950,39 @@ elif page == "Inspection records":
 
 elif page == "Notifications":
     st.subheader("Notifications")
-    st.caption("Notifications are read from the shared database. Database triggers must be installed to create notifications when inspections are submitted or decided.")
+    st.caption("Notifications disappear from this list after being read.")
+
     if st.button("Refresh notifications"):
         st.rerun()
+
     try:
         notifications = fetch_notifications(client)
-        if not notifications:
-            st.info("No notifications yet.")
-        for note in notifications:
+
+        unread_notifications = [
+            note for note in notifications
+            if not note.get("is_read", False)
+        ]
+
+        if not unread_notifications:
+            st.info("No unread notifications.")
+
+        for note in unread_notifications:
             with st.container(border=True):
-                st.markdown(f"**{note.get('title', 'Notification')}**")
+                st.markdown(
+                    f"**{note.get('title', 'Notification')}**"
+                )
                 st.write(note.get("message", ""))
                 st.caption(note.get("created_at", ""))
+
+                if st.button(
+                    "Mark as read",
+                    key=f"read_notification_{note['id']}"
+                ):
+                    client.table("notifications").update(
+                        {"is_read": True}
+                    ).eq("id", note["id"]).execute()
+
+                    st.rerun()
+
     except Exception as exc:
         st.error(f"Could not load notifications: {exc}")
