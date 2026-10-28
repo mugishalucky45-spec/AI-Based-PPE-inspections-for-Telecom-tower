@@ -974,10 +974,11 @@ elif page == "Notifications":
                 st.write(note.get("message", ""))
                 st.caption(note.get("created_at", ""))
 
-                if st.button(
+               
+               if st.button(
                     "Mark as read",
                     key=f"read_notification_{note['id']}"
-                 ):
+                ):
                     try:
                         result = (
                             client.table("notifications")
@@ -993,9 +994,9 @@ elif page == "Notifications":
                             st.error(
                                 "No notification was updated. "
                                 "Check the user's permissions and notification ID."
-                        )
+                            )
 
-                        except Exception as exc:
+                    except Exception as exc:
                         st.error(
                             f"Could not mark notification as read: {exc}"
                         )
