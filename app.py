@@ -968,13 +968,13 @@ elif page == "Notifications":
 
         for note in unread_notifications:
             with st.container(border=True):
-                st.markdown(
+                 st.markdown(
                     f"**{note.get('title', 'Notification')}**"
                 )
                 st.write(note.get("message", ""))
                 st.caption(note.get("created_at", ""))
 
-                 if st.button(
+                if st.button(
                     "Mark as read",
                     key=f"read_notification_{note['id']}"
                  ):
