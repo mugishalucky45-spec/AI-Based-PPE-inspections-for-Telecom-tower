@@ -948,6 +948,7 @@ elif page == "Inspection records":
         st.dataframe(df[df["Status"].isin(status_filter)], hide_index=True, use_container_width=True)
         st.download_button("Download records as CSV", df[df["Status"].isin(status_filter)].to_csv(index=False).encode("utf-8"), file_name="towersafe_inspections.csv", mime="text/csv")
 
+
 elif page == "Notifications":
     st.subheader("Notifications")
     st.caption("Notifications disappear from this list after being read.")
@@ -968,14 +969,13 @@ elif page == "Notifications":
 
         for note in unread_notifications:
             with st.container(border=True):
-                 st.markdown(
+                st.markdown(
                     f"**{note.get('title', 'Notification')}**"
                 )
                 st.write(note.get("message", ""))
                 st.caption(note.get("created_at", ""))
 
-               
-               if st.button(
+                if st.button(
                     "Mark as read",
                     key=f"read_notification_{note['id']}"
                 ):
@@ -993,10 +993,13 @@ elif page == "Notifications":
                         else:
                             st.error(
                                 "No notification was updated. "
-                                "Check the user's permissions and notification ID."
+                                "Check permissions and notification ID."
                             )
 
                     except Exception as exc:
                         st.error(
                             f"Could not mark notification as read: {exc}"
                         )
+
+    except Exception as exc:
+        st.error(f"Could not load notifications: {exc}")
